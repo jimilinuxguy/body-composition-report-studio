@@ -6,5 +6,7 @@
   "show_segmental_disclaimer": true,
   "show_device_values_disclaimer": true,
   "show_calculated_values_note": true,
-  "show_maintenance_control_baseline": true
+  "show_maintenance_control_baseline": true,
+  "history_mode": "full",
+  "history_recent_count": 6
 }
