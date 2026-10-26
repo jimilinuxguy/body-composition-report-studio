@@ -161,101 +161,6 @@ def build_inbody_pdf(scan, history=None):
     y=regional(x,y,"Segmental Lean Analysis","lean")
     y=section(x,y,LEFT,"ECW / TBW Analysis")
     y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45,3)
-    y-=5
-    y=section(x,y,LEFT,"Body Composition History")
-    # A shared date header and four self-contained chart bands.
-    # All labels, values and plots for a metric stay within its own band.
-    hx=x+112
-    plot_left=hx+11
-    plot_right=x+LEFT-25
-    scan_dates=[date.fromisoformat(str(h.scan_date)) for h in history]
-    first_day=min(scan_dates).toordinal()
-    elapsed=max(1,max(d.toordinal() for d in scan_dates)-first_day)
-    # Full-history mode uses elapsed calendar time, not equal spacing per scan.
-    # Recent mode keeps the compact scan-by-scan date header.
-    full_timeline=config.get("history_mode", "full") == "full"
-    positions=[plot_left+(d.toordinal()-first_day)/elapsed*(plot_right-plot_left)
-               if full_timeline else plot_left+i*(plot_right-plot_left)/max(1,len(history)-1)
-               for i,d in enumerate(scan_dates)]
-    date_format=config.get("history_date_format", "month_year")
-    def date_label(d):
-        if date_format=="us_full":
-            return f"{d.month:02d}/{d.day:02d}/{d.year}"
-        if date_format=="us_short":
-            return f"{d.month}/{d.day}/{str(d.year)[2:]}"
-        return f"{d.strftime('%b')} {d.year}"
-    labels=[date_label(d) for d in scan_dates]
-    font_size=6.7
-    # Labels are centered on their actual points, with collision avoidance.
-    # Always retain the first and last dates; select intermediate dates only
-    # when their text fits between the already-selected labels.
-    labeled_indices={0,len(history)-1}
-    if len(history)>2:
-        last_right=positions[0]+pdfmetrics.stringWidth(labels[0],"Helvetica",font_size)/2
-        final_left=positions[-1]-pdfmetrics.stringWidth(labels[-1],"Helvetica",font_size)/2
-        for i in range(1,len(history)-1):
-            half=pdfmetrics.stringWidth(labels[i],"Helvetica",font_size)/2
-            if positions[i]-half >= last_right+5 and positions[i]+half <= final_left-5:
-                labeled_indices.add(i)
-                last_right=positions[i]+half
-    for i in sorted(labeled_indices):
-        label=labels[i]
-        center_x=positions[i]
-        text(center_x-pdfmetrics.stringWidth(label,"Helvetica",font_size)/2,y,label,font_size,color=GRAY)
-    y-=12
-    chart_rows=[
-        ("Weight (lb)",lambda z:z.weight_lb,1),
-        ("SMM (lb)",lambda z:z.skeletal_muscle_lb,1),
-        ("PBF (%)",lambda z:z.body_fat_pct,1),
-        ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
-    ]
-    band_h=42
-    for row_index,(label,fn,decimals) in enumerate(chart_rows):
-        top=y
-        bottom=top-band_h
-        if row_index%2==0:
-            c.setFillColor(colors.HexColor("#f4f6f7"))
-            c.rect(x,bottom,LEFT,band_h,stroke=0,fill=1)
-        # Label is centered vertically against its *own* plot, never the next row.
-        text(x+3,bottom+15,label,8,True)
-        values=[fn(h) for h in history]
-        numeric=[v for v in values if v is not None]
-        low=min(numeric) if numeric else 0
-        high=max(numeric) if numeric else 1
-        # Give small changes visual context rather than filling the plot height.
-        if label=="ECW/TBW" and numeric:
-            # Zoom this low-variance ratio to its observed range while retaining
-            # padding so small but meaningful trends are visible. A constant
-            # series stays flat, and values never exceed the plot bounds.
-            pad=max((high-low)*.25, .001)
-            low-=pad
-            high+=pad
-        else:
-            pad=max((high-low)*.25, .004 if label=="ECW/TBW" else .5)
-            low-=pad
-            high+=pad
-        span=max(high-low,.001)
-        # Value labels occupy the top of the band; plotted points occupy
-        # the lower half, with 4 pt minimum clearance to the next band.
-        points=[]
-        for i,v in enumerate(values):
-            px=positions[i]
-            if v is not None:
-                value_label=value(v,decimals)
-                is_latest=i==len(values)-1
-                font="Helvetica-Bold" if is_latest else "Helvetica"
-                font_size=7.1 if is_latest else 6.8
-                if i in labeled_indices:
-                    text(px-pdfmetrics.stringWidth(value_label,font,font_size)/2,top-10,value_label,font_size,is_latest,RED if is_latest else INK)
-                py=bottom+7+22*(v-low)/span
-                points.append((px,py))
-        for p,q in zip(points,points[1:]):
-            line(*p,*q,RED,1)
-        for j,(px,py) in enumerate(points):
-            c.setFillColor(RED)
-            c.circle(px,py,2.8 if j==len(points)-1 else 1.7,stroke=0,fill=1)
-        line(x,bottom,x+LEFT,bottom,PALE,.7)
-        y=bottom
     # Right side
     rx=RIGHT_X;ry=H-115
     ry=section(rx,ry,RIGHT_W,"Body Fat / Lean Control")
@@ -315,34 +220,6 @@ def build_inbody_pdf(scan, history=None):
             text(rx+RIGHT_W-22,ry,"—",7.5)
         line(rx,ry-5,rx+RIGHT_W,ry-5)
         ry-=18
-    ry-=8
-    ry=section(rx,ry,RIGHT_W,"Results Interpretation")
-    interpretation=[
-        "Body composition includes fat mass",
-        "and fat-free mass.",
-        "BMI is derived from weight and height.",
-    ]
-    if config.get("show_segmental_disclaimer",True):
-        interpretation.extend([
-            "Segmental values are illustrative" if is_synthetic else "Segmental values are shown only",
-            "and not device-measured." if is_synthetic else "when supplied by the user.",
-        ])
-    if config.get("show_device_values_disclaimer",True):
-        interpretation.append("Device-only fields may be unavailable." if is_synthetic else "No device-only values are inferred.")
-    for msg in interpretation:
-        text(rx+2,ry,msg,7,color=GRAY)
-        ry-=12
-    ry-=8
-    ry=section(rx,ry,RIGHT_W,"Impedance (ohms)")
-    keys=[("RA","right_arm"),("LA","left_arm"),("TR","trunk"),("RL","right_leg"),("LL","left_leg")]
-    for i,(abbr,_) in enumerate(keys):text(rx+44+i*28,ry,abbr,6.5,True)
-    ry-=14
-    for freq in (5,50,500):
-        text(rx+2,ry,str(freq)+" kHz",6.6)
-        for i,(_,key) in enumerate(keys):
-            v=getattr(scan,f"impedance_{freq}khz_{key}_ohm",None)
-            text(rx+42+i*28,ry,value(v,0),6.3)
-        ry-=15
     # Full transformation and recent six-date window are intentionally separate.
     if len(recent_history)>1:
         first,last=recent_history[0],recent_history[-1]
@@ -377,6 +254,98 @@ def build_inbody_pdf(scan, history=None):
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
+    # Full-width history replaces the removed interpretation/impedance blocks.
+    # Keep all dated measurements visible, including densely spaced recent scans.
+    y=min(y,ry)-9
+    chart_width=W-2*MARGIN
+    y=section(MARGIN,y,chart_width,"Body Composition History")
+    plot_left=MARGIN+79
+    plot_right=W-MARGIN-9
+    scan_dates=[date.fromisoformat(str(h.scan_date)) for h in history]
+    first_day=min(d.toordinal() for d in scan_dates)
+    elapsed=max(1,max(d.toordinal() for d in scan_dates)-first_day)
+    full_timeline=config.get("history_mode","full")=="full"
+    positions=[plot_left+(d.toordinal()-first_day)/elapsed*(plot_right-plot_left)
+               if full_timeline else plot_left+i*(plot_right-plot_left)/max(1,len(history)-1)
+               for i,d in enumerate(scan_dates)]
+    date_format=config.get("history_date_format","month_year")
+    def date_label(d):
+        if date_format=="us_full":
+            return f"{d.month:02d}/{d.day:02d}/{d.year}"
+        if date_format=="us_short":
+            return f"{d.month}/{d.day}/{str(d.year)[2:]}"
+        return f"{d.strftime('%b')} {d.year}"
+    labels=[date_label(d) for d in scan_dates]
+    # Allocate labels to non-overlapping lanes instead of silently omitting scans.
+    # Full dates and values remain available even when measurements cluster.
+    date_lanes=[float("-inf")]*4
+    date_positions=[]
+    for i,label in enumerate(labels):
+        width=pdfmetrics.stringWidth(label,"Helvetica",6.3)
+        desired=positions[i]
+        best=None
+        for lane in range(len(date_lanes)):
+            center=max(desired,date_lanes[lane]+width/2+3)
+            center=min(center,plot_right-width/2)
+            left=center-width/2
+            if left>=date_lanes[lane]+3 and center+width/2<=plot_right+.01:
+                cost=abs(center-desired)+lane*1.2
+                if best is None or cost<best[0]:
+                    best=(cost,lane,center)
+        if best is None:
+            # Dense histories still plot every point; date labels use a compact
+            # indexed key when four lanes cannot accommodate them legibly.
+            best=(0,i%len(date_lanes),desired)
+        _,lane,center=best
+        date_lanes[lane]=center+width/2
+        date_positions.append((lane,center))
+        text(center-width/2,y-lane*8,label,6.3,color=GRAY)
+    y-=37
+    chart_rows=[
+        ("Weight (lb)",lambda z:z.weight_lb,1),
+        ("SMM (lb)",lambda z:z.skeletal_muscle_lb,1),
+        ("PBF (%)",lambda z:z.body_fat_pct,1),
+        ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
+    ]
+    available=max(104,y-57)
+    band_h=min(37,max(26,available/4))
+    for row_index,(label,fn,decimals) in enumerate(chart_rows):
+        top=y
+        bottom=top-band_h
+        if row_index%2==0:
+            c.setFillColor(colors.HexColor("#f4f6f7"))
+            c.rect(MARGIN,bottom,chart_width,band_h,stroke=0,fill=1)
+        text(MARGIN+3,bottom+band_h*.45,label,7.8,True)
+        values=[fn(h) for h in history]
+        numeric=[v for v in values if v is not None]
+        low=min(numeric) if numeric else 0
+        high=max(numeric) if numeric else 1
+        pad=max((high-low)*.25,.001 if label=="ECW/TBW" else .5)
+        low-=pad
+        high+=pad
+        span=max(high-low,.001)
+        points=[]
+        for i,v in enumerate(values):
+            if v is None:
+                continue
+            px=positions[i]
+            py=bottom+5+(band_h-19)*(v-low)/span
+            points.append((px,py))
+            # Numeric annotations for every result, staggered in two lanes.
+            val=value(v,decimals)
+            fs=6.2 if len(history)>10 else 6.8
+            vx=date_positions[i][1]
+            lane=i%2
+            label_y=top-8-lane*8
+            text(vx-pdfmetrics.stringWidth(val,"Helvetica",fs)/2,label_y,val,fs,
+                 i==len(values)-1,RED if i==len(values)-1 else INK)
+        for p,q in zip(points,points[1:]):
+            line(*p,*q,RED,1)
+        for j,(px,py) in enumerate(points):
+            c.setFillColor(RED)
+            c.circle(px,py,2.6 if j==len(points)-1 else 1.5,stroke=0,fill=1)
+        line(MARGIN,bottom,W-MARGIN,bottom,PALE,.7)
+        y=bottom
     # Optional footer messages are controlled entirely by report_config.
     if is_synthetic and config.get("show_generated_footer_notice", True):
         text(MARGIN,54,"Synthetic demo fields present; not device-measured.",6.8,True,RED)
