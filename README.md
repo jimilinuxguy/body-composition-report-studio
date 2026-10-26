@@ -78,3 +78,20 @@ JSON file to persist changes. To start with no previous demonstration entries,
 replace the `entries` array with your own valid dated scans (at least one).
 Keep `schema_version` at 1. All provided demonstration values are synthetic,
 not actual instrument readings.
+
+## Optional generated-report notices
+
+Edit `data/report_config.json` offline before starting the server:
+
+```json
+{
+  "show_generated_header_notice": false,
+  "show_generated_footer_notice": false
+}
+```
+
+These switches hide the two generic **generated-report** lines on reports
+that do not contain synthetic measurements. They do **not** suppress
+"SYNTHETIC DEMONSTRATION" or "SYNTHETIC DEMO - NOT REAL SCAN RESULTS"
+on fictional demonstration reports, which must remain clearly identified.
+The configuration is read whenever the PDF is generated.
