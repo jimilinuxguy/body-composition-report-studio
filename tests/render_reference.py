@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import fitz
+import pymupdf as fitz
 from app import Scan
 from inbody_layout import build_inbody_pdf
 entries = json.loads((ROOT / "data" / "measurements.json").read_text())["entries"]
@@ -26,7 +26,7 @@ assert not outside, f"Text outside page: {outside[:10]}"
 text = page.get_text()
 for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analysis",
              "Segmental Lean Analysis", "Body Composition History", "Transformation Overview",
-             "For personal tracking"):
+             "Impedance (ohms)"):
     assert term in text, f"Missing from PDF: {term}"
 # Verify each history label is inside the same visual band as its values.
 # PyMuPDF coordinates increase down the page.
