@@ -223,3 +223,17 @@ def test_generated_notices_configurable_but_synthetic_labels_remain(monkeypatch)
     demo=PdfReader(io.BytesIO(inbody_layout.build_inbody_pdf(synthetic))).pages[0].extract_text()
     assert "SYNTHETIC DEMONSTRATION" in demo
     assert "SYNTHETIC DEMO - NOT REAL SCAN RESULTS" in demo
+
+def test_legacy_config_defaults_for_new_optional_disclaimers(monkeypatch):
+    import io
+    from pypdf import PdfReader
+    import inbody_layout
+    from app import Scan
+    monkeypatch.setattr(inbody_layout, 'report_config', lambda: {
+        'show_generated_header_notice': False,
+        'show_generated_footer_notice': False,
+    })
+    pdf = inbody_layout.build_inbody_pdf(Scan.model_validate(VALID_SCAN))
+    text = PdfReader(io.BytesIO(pdf)).pages[0].extract_text()
+    assert 'For personal tracking; not a diagnostic or device-verified measurement.' in text
+    assert 'No device-only values are inferred.' in text
