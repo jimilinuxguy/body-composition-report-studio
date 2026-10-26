@@ -44,10 +44,10 @@ def build_inbody_pdf(scan, history=None):
         text(x+width-31,y,unit,7,color=GRAY)
         line(x,y-5,x+width,y-5)
         return y-14
-    def metric(x,y,label,v,unit,lo,hi):
+    def metric(x,y,label,v,unit,lo,hi,decimals=1):
         text(x+3,y,label,7.6,True)
         bar(x+107,y+1,155,v,lo,hi)
-        text(x+275,y,value(v),8.6,True)
+        text(x+275,y,value(v,decimals),8.6,True)
         text(x+317,y,unit,7,color=GRAY)
         line(x,y-7,x+LEFT,y-7)
         return y-21
@@ -112,20 +112,20 @@ def build_inbody_pdf(scan, history=None):
     y-=8
     y=regional(x,y,"Segmental Lean Analysis","lean")
     y=section(x,y,LEFT,"ECW / TBW Analysis")
-    y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45)
+    y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45,3)
     y-=5
     y=section(x,y,LEFT,"Body Composition History")
     # Six dated columns, newest on the right
     hx=x+112;cw=39
     for i,h in enumerate(history):
         text(hx+i*cw,y,str(h.scan_date)[5:],6.1,color=GRAY)
-    y-=14
+    y-=19
     for label,fn in [
         ("Weight (lb)",lambda z:z.weight_lb),
         ("SMM (lb)",lambda z:z.skeletal_muscle_lb),
         ("PBF (%)",lambda z:z.body_fat_pct),
         ("ECW/TBW",lambda z:z.ecw_tbw_ratio)]:
-        text(x+2,y,label,7.2,True)
+        text(x+2,y,label,8,True)
         values=[fn(h) for h in history]
         pts=[]
         numeric=[v for v in values if v is not None]
@@ -135,19 +135,20 @@ def build_inbody_pdf(scan, history=None):
         for i,v in enumerate(values):
             px=hx+11+i*cw
             if v is not None:
-                py=y-11+9*(v-low)/span
+                py=y-17+15*(v-low)/span
                 pts.append((px,py))
-                text(px-9,y+7,value(v),6.2)
+                text(px-10,y+8,value(v,3 if label=="ECW/TBW" else 1),6.5)
         for a,b in zip(pts,pts[1:]):line(*a,*b,RED,1)
         for px,py in pts:
             c.setFillColor(RED);c.circle(px,py,1.8,stroke=0,fill=1)
-        line(x,y-19,x+LEFT,y-19)
-        y-=26
+        line(x,y-27,x+LEFT,y-27)
+        y-=34
     # Right side
     rx=RIGHT_X;ry=H-115
     ry=section(rx,ry,RIGHT_W,"Body Fat / Lean Control")
     for label,v in [("Weight Control",scan.weight_control_lb),("Fat Control",scan.fat_control_lb),("Muscle Control",scan.muscle_control_lb)]:
         ry=small_row(rx,ry,label,v)
+    text(rx+2,ry+2,"0.0 = target achieved; not historical change",6.2,color=GRAY)
     ry-=10
     ry=section(rx,ry,RIGHT_W,"Segmental Fat Analysis")
     for label,key in [("Right Arm","right_arm"),("Left Arm","left_arm"),("Trunk","trunk"),("Right Leg","right_leg"),("Left Leg","left_leg")]:
