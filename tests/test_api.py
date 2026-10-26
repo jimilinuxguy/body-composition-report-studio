@@ -106,3 +106,11 @@ def test_reference_pdf_missing_device_values_are_not_fabricated():
     text = PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
     assert "GENERATED" in text
     assert "No device-only values are inferred." in text
+
+def test_inbody_renderer_imports_and_builds_pdf_directly():
+    from inbody_layout import build_inbody_pdf
+    from app import Scan
+    scan = Scan.model_validate(VALID_SCAN)
+    pdf_bytes = build_inbody_pdf(scan)
+    assert pdf_bytes.startswith(b"%PDF")
+    assert len(pdf_bytes) > 1000
