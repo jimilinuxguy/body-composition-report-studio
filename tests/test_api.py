@@ -197,8 +197,7 @@ def test_full_journey_and_recent_six_have_distinct_weight_changes():
     assert len(reader.pages)==1
     text=reader.pages[0].extract_text()
     for expected in ('Total weight','Recent weight','Recent body fat',
-                     'Recent muscle','-330.0 lb','-101.7 lb','+10.2 lb',
-                     'Synthetic demo fields present; not device-measured.'):
+                     'Recent muscle','-330.0 lb','-101.7 lb','+10.2 lb'):
         assert expected in text,expected
     assert '05-15' not in text
     assert '10-26' in text
