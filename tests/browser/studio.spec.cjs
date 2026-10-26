@@ -93,3 +93,32 @@ test('three monthly saved entries are sent to printable PDF preview and download
   await expect.poll(()=>captured.length>=2).toBeTruthy();
   expect(captured.at(-1).history.length).toBeGreaterThanOrEqual(3);
 });
+
+
+test('2024-2026 demo safely replaces history and feeds all dates to preview', async ({ page }) => {
+  const requests=[];
+  page.on('request', request=>{
+    if(request.url().includes('/api/inbody/sheet') && request.method()==='POST')
+      requests.push(request.postDataJSON());
+  });
+  page.on('dialog', dialog=>dialog.accept());
+  await page.goto('/');
+  await page.locator('#load-demo-history').click();
+  await expect(page.locator('#entry-count')).toContainText('15 entries');
+  await expect(page.locator('#history-table')).toContainText('522.4');
+  await expect(page.locator('#history-table')).toContainText('192.4');
+  await expect(page.locator('[name="weight_lb"]')).toHaveValue('192.4');
+  await expect.poll(()=>requests.some(p=>
+    p.history?.length===15 &&
+    p.history[0].scan_date==='2024-05-15' &&
+    p.history.at(-1).scan_date==='2026-10-26'
+  )).toBeTruthy();
+  const stored=await page.evaluate(()=>({
+    entries:JSON.parse(localStorage.getItem('bodycomp.history.v2')),
+    backup:Object.keys(localStorage).filter(k=>k.startsWith('bodycomp.history.backup.'))
+  }));
+  expect(stored.entries).toHaveLength(15);
+  expect(stored.entries.every(e=>e.notes.includes('SYNTHETIC'))).toBeTruthy();
+  await page.reload();
+  await expect(page.locator('#entry-count')).toContainText('15 entries');
+});
