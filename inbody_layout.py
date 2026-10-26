@@ -32,10 +32,15 @@ def build_inbody_pdf(scan, history=None):
         return "—" if v is None else f"{v:.{d}f}"
     def section(x,y,w,title):
         text(x,y,title,11,True)
-        line(x,y-5,x+w,y-5,GRAY,.7)
+        c.setFillColor(PALE)
+        c.rect(x,y-11,w,4,stroke=0,fill=1)
+        line(x,y-12,x+w,y-12,GRAY,.5)
         return y-19
     def bar(x,y,w,number,lo,hi):
         c.setFillColor(PALE);c.rect(x,y-3,w,6,stroke=0,fill=1)
+        for tick in range(1,6):
+            xx=x+w*tick/6
+            line(xx,y-4,xx,y+4,colors.white,.6)
         if number is not None:
             frac=max(0,min(1,(number-lo)/(hi-lo)))
             c.setFillColor(BAR);c.rect(x,y-3,max(2,w*frac),6,stroke=0,fill=1)
