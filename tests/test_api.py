@@ -126,3 +126,41 @@ def test_inbody_pdf_preserves_ecw_ratio_precision():
     extracted = PdfReader(BytesIO(pdf)).pages[0].extract_text()
     assert "0.379" in extracted
     assert "0.4" not in extracted.split("ECW / TBW Analysis", 1)[1].split("Body Composition History", 1)[0]
+
+
+def test_six_month_synthetic_report_summary_and_disclosure():
+    import io
+    from pypdf import PdfReader
+    dates = ["2026-06-01", "2026-06-29", "2026-07-31",
+             "2026-08-27", "2026-09-30", "2026-10-26"]
+    weights = [292.4, 270.8, 244.6, 222.9, 205.7, 192.4]
+    fats = [42.1, 38.4, 32.6, 26.1, 19.3, 13.2]
+    muscles = [75.1, 76.8, 78.9, 78.5, 82.6, 85.3]
+    visceral = [20, 17, 13, 10, 6, 3]
+    history = []
+    for i, day in enumerate(dates):
+        history.append({
+            **VALID_SCAN,
+            "scan_date": day,
+            "weight_lb": weights[i],
+            "body_fat_pct": fats[i],
+            "skeletal_muscle_lb": muscles[i],
+            "visceral_fat_level": visceral[i],
+            "ecw_tbw_ratio": [0.391, 0.389, 0.390, 0.385, 0.383, 0.379][i],
+            "notes": "SYNTHETIC DEMONSTRATION DATA - not actual measurements",
+            "device_model": "Synthetic demo",
+        })
+    response = client.post("/api/inbody/sheet", json={
+        "scan": history[-1], "history": history[:-1]
+    })
+    assert response.status_code == 200, response.text
+    reader = PdfReader(io.BytesIO(response.content))
+    assert len(reader.pages) == 1
+    text = reader.pages[0].extract_text()
+    for expected in ("Transformation Overview", "-100.0 lb", "-28.9 pp",
+                     "+10.2 lb", "-17.0", "0.379",
+                     "SYNTHETIC DEMONSTRATION", "NOT REAL SCAN RESULTS"):
+        assert expected in text, expected
+    for day in dates:
+        assert day[5:] in text
+    assert "No device-only values are inferred." not in text
