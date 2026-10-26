@@ -28,6 +28,15 @@ for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analys
              "Segmental Lean Analysis", "Body Composition History", "Transformation Overview",
              "Impedance (ohms)"):
     assert term in text, f"Missing from PDF: {term}"
+# Guard against explanatory captions intruding into the next section heading.
+for heading in ("Obesity Analysis", "ECW / TBW Analysis"):
+    heading_rect = page.search_for(heading)[0]
+    nearby = [w for w in words if w[1] < heading_rect.y1 and w[3] > heading_rect.y0
+              and w[0] < heading_rect.x1 and w[2] > heading_rect.x0]
+    heading_words = set(heading.split())
+    assert all(w[4] in heading_words for w in nearby), (
+        f"Overlapping text at {heading}: {nearby}"
+    )
 # Verify each history label is inside the same visual band as its values.
 # PyMuPDF coordinates increase down the page.
 history_labels = ["Weight (lb)", "SMM (lb)", "PBF (%)", "ECW/TBW"]
