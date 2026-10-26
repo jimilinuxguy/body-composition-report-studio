@@ -40,7 +40,7 @@ def build_inbody_pdf(scan, history=None):
     config=report_config()
     out=io.BytesIO()
     c=canvas.Canvas(out,pagesize=A4,pageCompression=0)
-    c.setTitle("Generated InBody-style body composition report")
+    c.setTitle("Body Composition | Personal Progress Report")
     def text(x,y,s,size=8,bold=False,color=INK):
         c.setFont("Helvetica-Bold" if bold else "Helvetica",size)
         c.setFillColor(color)
@@ -94,8 +94,8 @@ def build_inbody_pdf(scan, history=None):
             y-=19
         return y-6
     # Header and identity
-    text(MARGIN,H-39,"InBody",27,True,RED)
-    text(MARGIN+103,H-36,"STYLE BODY COMPOSITION REPORT",9,True,GRAY)
+    text(MARGIN,H-39,"BODY COMPOSITION",20,True,RED)
+    text(MARGIN+231,H-36,"PERSONAL PROGRESS REPORT",8,True,GRAY)
     line(MARGIN,H-49,W-MARGIN,H-49,RED,1.7)
     text(MARGIN,H-65,"Name / ID",7,color=GRAY)
     text(MARGIN,H-77,scan.name[:30],9,True)
@@ -132,6 +132,7 @@ def build_inbody_pdf(scan, history=None):
     y=metric(x,y,"Weight",scan.weight_lb,"lb",75,350)
     y=metric(x,y,"Skeletal Muscle Mass",scan.skeletal_muscle_lb,"lb",30,150)
     y=metric(x,y,"Body Fat Mass",fat,"lb",0,140)
+    text(x+3,y+4,"Bars show position on display scales; not clinical target ranges.",6,color=GRAY)
     y-=6
     y=section(x,y,LEFT,"Obesity Analysis")
     bmi=703*scan.weight_lb/scan.height_in**2
@@ -139,6 +140,7 @@ def build_inbody_pdf(scan, history=None):
     y=metric(x,y,"Percent Body Fat",scan.body_fat_pct,"%",0,50)
     y-=8
     y=regional(x,y,"Segmental Lean Analysis","lean")
+    text(x+3,y+5,"Segment percentages: supplied reference ratios (100% = reference).",6,color=GRAY)
     y=section(x,y,LEFT,"ECW / TBW Analysis")
     y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45,3)
     y-=5
@@ -158,7 +160,7 @@ def build_inbody_pdf(scan, history=None):
         ("PBF (%)",lambda z:z.body_fat_pct,1),
         ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
     ]
-    band_h=36
+    band_h=39
     for row_index,(label,fn,decimals) in enumerate(chart_rows):
         top=y
         bottom=top-band_h
@@ -166,7 +168,7 @@ def build_inbody_pdf(scan, history=None):
             c.setFillColor(colors.HexColor("#f4f6f7"))
             c.rect(x,bottom,LEFT,band_h,stroke=0,fill=1)
         # Label is centered vertically against its *own* plot, never the next row.
-        text(x+3,bottom+11,label,8,True)
+        text(x+3,bottom+12,label,8,True)
         values=[fn(h) for h in history]
         numeric=[v for v in values if v is not None]
         low=min(numeric) if numeric else 0
@@ -192,13 +194,13 @@ def build_inbody_pdf(scan, history=None):
             if v is not None:
                 value_label=value(v,decimals)
                 text(px-pdfmetrics.stringWidth(value_label,"Helvetica",6.8)/2,top-10,value_label,6.8)
-                py=bottom+6+11*(v-low)/span
+                py=bottom+5+17*(v-low)/span
                 points.append((px,py))
         for p,q in zip(points,points[1:]):
             line(*p,*q,RED,1)
-        for px,py in points:
+        for j,(px,py) in enumerate(points):
             c.setFillColor(RED)
-            c.circle(px,py,1.7,stroke=0,fill=1)
+            c.circle(px,py,2.8 if j==len(points)-1 else 1.7,stroke=0,fill=1)
         line(x,bottom,x+LEFT,bottom,PALE,.7)
         y=bottom
     # Right side
@@ -240,10 +242,25 @@ def build_inbody_pdf(scan, history=None):
     ry=section(rx,ry,RIGHT_W,"Visceral Fat Level")
     ry=small_row(rx,ry,"Level",scan.visceral_fat_level)
     bar(rx+7,ry+2,165,scan.visceral_fat_level,0,20)
-    ry-=20
+    text(rx+7,ry-9,"Display scale: 0–20",6,color=GRAY)
+    ry-=24
     ry=section(rx,ry,RIGHT_W,"Research Parameters")
-    for label,v in [("Basal Metabolic Rate",scan.basal_metabolic_rate_kcal),("InBody Score",scan.inbody_score),("Waist / Hip Ratio",scan.waist_hip_ratio),("Phase Angle",scan.phase_angle_deg)]:
-        ry=small_row(rx,ry,label,v)
+    research=[
+        ("Basal Metabolic Rate", None if scan.basal_metabolic_rate_kcal is None else f"{scan.basal_metabolic_rate_kcal:,.0f} kcal/day"),
+        ("InBody Score", None if scan.inbody_score is None else f"{scan.inbody_score:.0f} / 100"),
+        ("Waist / Hip Ratio", None if scan.waist_hip_ratio is None else f"{scan.waist_hip_ratio:.2f}"),
+        ("Phase Angle", None if scan.phase_angle_deg is None else f"{scan.phase_angle_deg:.1f} deg"),
+    ]
+    for label,display in research:
+        text(rx+2,ry,label,7.3)
+        if display is not None:
+            c.setFont("Helvetica-Bold",7.5)
+            c.setFillColor(INK)
+            c.drawRightString(rx+RIGHT_W-2,ry,display)
+        else:
+            text(rx+RIGHT_W-22,ry,"—",7.5)
+        line(rx,ry-5,rx+RIGHT_W,ry-5)
+        ry-=18
     ry-=8
     ry=section(rx,ry,RIGHT_W,"Results Interpretation")
     interpretation=[
@@ -285,15 +302,16 @@ def build_inbody_pdf(scan, history=None):
             nonlocal ry
             display="N/A" if begin is None or end is None else f"{end-begin:+.{digits}f}{unit}"
             text(rx+2,ry,label,7.1)
-            text(rx+119,ry,display,8,True)
+            c.setFont("Helvetica-Bold",9 if label=="Total weight" else 8)
+            c.setFillColor(RED if label=="Total weight" else INK)
+            c.drawRightString(rx+RIGHT_W-3,ry,display)
             line(rx,ry-5,rx+RIGHT_W,ry-5)
             ry-=18
         change_row("Total weight",original.weight_lb,last.weight_lb," lb")
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
-    # Disclosure of invented measurements is mandatory even when optional
-    # report notices are disabled. It is not a configurable decoration.
+    # Optional footer messages are controlled entirely by report_config.
     if is_synthetic and config.get("show_generated_footer_notice", True):
         text(MARGIN,54,"Synthetic demo fields present; not device-measured.",6.8,True,RED)
     line(MARGIN,43,W-MARGIN,43,RED,1)
