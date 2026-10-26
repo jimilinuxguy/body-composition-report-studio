@@ -307,7 +307,7 @@ def build_inbody_pdf(scan, history=None):
         ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
     ]
     available=max(96,y-62)
-    band_h=min(34,max(24,available/4))
+    band_h=min(28,max(23,available/4))
     for row_index,(label,fn,decimals) in enumerate(chart_rows):
         top=y
         bottom=top-band_h
@@ -328,7 +328,7 @@ def build_inbody_pdf(scan, history=None):
             if v is None:
                 continue
             px=positions[i]
-            py=bottom+5+(band_h-19)*(v-low)/span
+            py=bottom+4+(band_h-25)*(v-low)/span
             points.append((px,py))
             # Numeric annotations for every result, staggered in two lanes.
             val=value(v,decimals)
