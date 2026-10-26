@@ -3,6 +3,7 @@ import io
 import json
 from pathlib import Path
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 
@@ -144,7 +145,9 @@ def build_inbody_pdf(scan, history=None):
     hx=x+112
     cw=39
     for i,h in enumerate(history):
-        text(hx+11+i*cw,y,str(h.scan_date)[5:],6.1,color=GRAY)
+        date_label=str(h.scan_date)[5:]
+        center_x=hx+11+i*cw
+        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",6.1)/2,y,date_label,6.1,color=GRAY)
     y-=12
     chart_rows=[
         ("Weight (lb)",lambda z:z.weight_lb,1),
@@ -172,7 +175,8 @@ def build_inbody_pdf(scan, history=None):
         for i,v in enumerate(values):
             px=hx+11+i*cw
             if v is not None:
-                text(px-10,top-10,value(v,decimals),6.3)
+                value_label=value(v,decimals)
+                text(px-c.pdfmetrics.stringWidth(value_label,"Helvetica",6.3)/2,top-10,value_label,6.3)
                 py=bottom+6+11*(v-low)/span
                 points.append((px,py))
         for p,q in zip(points,points[1:]):
