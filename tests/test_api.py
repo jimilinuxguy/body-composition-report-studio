@@ -82,7 +82,12 @@ def test_reference_layout_pdf_has_all_required_sections(monkeypatch):
     assert "Left Leg" in text
 
 
-def test_reference_pdf_uses_six_date_history():
+def test_reference_pdf_uses_six_date_history(monkeypatch):
+    import inbody_layout
+    original_config=inbody_layout.report_config()
+    monkeypatch.setattr(inbody_layout, "report_config", lambda: {
+        **original_config, "history_mode": "recent", "history_recent_count": 6
+    })
     import io
     from datetime import date, timedelta
     from pypdf import PdfReader
@@ -98,6 +103,46 @@ def test_reference_pdf_uses_six_date_history():
     assert "10-11" in text
     assert "10-16" in text
     assert "10-10" not in text
+
+
+def test_full_history_chart_includes_first_and_last_and_keeps_recent_delta(monkeypatch):
+    import io
+    from datetime import date, timedelta
+    from pypdf import PdfReader
+    import inbody_layout
+    config=inbody_layout.report_config()
+    monkeypatch.setattr(inbody_layout, "report_config", lambda: {
+        **config, "history_mode": "full"
+    })
+    scans=[]
+    for i in range(15):
+        scan={**VALID_SCAN, "scan_date": (date(2024, 5, 15) + timedelta(days=i*60)).isoformat(),
+              "weight_lb": 522.4 - i*20, "skeletal_muscle_lb": 70+i}
+        scans.append(scan)
+    response=client.post("/api/inbody/sheet", json={"scan": scans[-1], "history": scans[:-1]})
+    assert response.status_code == 200, response.text
+    text=PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
+    assert "24-05" in text
+    assert str(scans[-1]["scan_date"])[2:7] in text
+    assert "522.4" in text
+    assert "242.4" in text
+    assert "-100.0 lb" in text
+
+
+def test_history_configuration_validation(monkeypatch):
+    import inbody_layout
+    from pathlib import Path
+    import json
+    config_path=Path(inbody_layout.__file__).parent/"data"/"report_config.json"
+    original_read=Path.read_text
+    def mocked_read(path, *args, **kwargs):
+        if path == config_path:
+            return json.dumps({"history_mode":"recent","history_recent_count":1})
+        return original_read(path, *args, **kwargs)
+    monkeypatch.setattr(Path, "read_text", mocked_read)
+    import pytest
+    with pytest.raises(ValueError, match="history_recent_count"):
+        inbody_layout.report_config()
 
 
 def test_reference_pdf_missing_device_values_are_not_fabricated(monkeypatch):
