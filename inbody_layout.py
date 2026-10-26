@@ -1,6 +1,7 @@
 """Reference-inspired InBody-style report. Generated, not device-issued."""
 import io
 import json
+from datetime import date
 from pathlib import Path
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -164,16 +165,30 @@ def build_inbody_pdf(scan, history=None):
     hx=x+112
     plot_left=hx+11
     plot_right=x+LEFT-25
-    cw=(plot_right-plot_left)/max(1,len(history)-1)
-    # Avoid crowding labels when plotting the full history.
-    label_stride=max(1, (len(history)-1+4)//5)
-    labeled_indices={0,len(history)-1}
-    labeled_indices.update(range(0,len(history),label_stride))
+    scan_dates=[date.fromisoformat(str(h.scan_date)) for h in history]
+    first_day=min(scan_dates).toordinal()
+    elapsed=max(1,max(d.toordinal() for d in scan_dates)-first_day)
+    # Full-history mode uses elapsed calendar time, not equal spacing per scan.
+    # Recent mode keeps the compact scan-by-scan date header.
+    full_timeline=config.get("history_mode", "full") == "full"
+    positions=[plot_left+(d.toordinal()-first_day)/elapsed*(plot_right-plot_left)
+               if full_timeline else plot_left+i*(plot_right-plot_left)/max(1,len(history)-1)
+               for i,d in enumerate(scan_dates)]
+    if full_timeline:
+        # Label real scan dates, reserving enough room for adjacent labels.
+        labeled_indices={0,len(history)-1}
+        last_x=positions[0]
+        for i in range(1,len(history)-1):
+            if positions[i]-last_x>=42 and positions[-1]-positions[i]>=37:
+                labeled_indices.add(i)
+                last_x=positions[i]
+    else:
+        labeled_indices=set(range(len(history)))
     for i,h in enumerate(history):
         if i not in labeled_indices:
             continue
-        date_label=(str(h.scan_date)[2:7] if len(history)>9 else str(h.scan_date)[5:])
-        center_x=plot_left+i*cw
+        date_label=(str(h.scan_date)[2:7] if full_timeline else str(h.scan_date)[5:])
+        center_x=positions[i]
         text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",6.7)/2,y,date_label,6.7,color=GRAY)
     y-=12
     chart_rows=[
@@ -212,7 +227,7 @@ def build_inbody_pdf(scan, history=None):
         # the lower half, with 4 pt minimum clearance to the next band.
         points=[]
         for i,v in enumerate(values):
-            px=plot_left+i*cw
+            px=positions[i]
             if v is not None:
                 value_label=value(v,decimals)
                 is_latest=i==len(values)-1
