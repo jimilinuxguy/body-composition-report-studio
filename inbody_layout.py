@@ -23,7 +23,7 @@ def report_config():
     path=Path(__file__).parent/"data"/"report_config.json"
     defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True,"show_tracking_footer":True,"show_calculated_values_note":True,"show_maintenance_control_baseline":True,"show_segmental_disclaimer":True,"show_device_values_disclaimer":True}
     if not path.exists():
-        return {**defaults, "report_branding": "inbody", "history_mode": "full", "history_recent_count": 6}
+        return {**defaults, "report_branding": "inbody", "history_mode": "full", "history_recent_count": 6, "history_date_format": "month_year"}
     config=json.loads(path.read_text(encoding="utf-8"))
     for key in defaults:
         if key in config and not isinstance(config[key],bool):
@@ -37,7 +37,10 @@ def report_config():
     recent_count = config.get("history_recent_count", 6)
     if type(recent_count) is not int or not 2 <= recent_count <= 25:
         raise ValueError("history_recent_count must be an integer from 2 to 25")
-    return {**defaults, **config, "report_branding": branding,
+    date_format=config.get("history_date_format", "month_year")
+    if date_format not in ("month_year", "us_short", "us_full"):
+        raise ValueError("history_date_format must be month_year, us_short or us_full")
+    return {**defaults, **config, "history_date_format": date_format, "report_branding": branding,
             "history_mode": history_mode, "history_recent_count": recent_count}
 
 
@@ -174,22 +177,31 @@ def build_inbody_pdf(scan, history=None):
     positions=[plot_left+(d.toordinal()-first_day)/elapsed*(plot_right-plot_left)
                if full_timeline else plot_left+i*(plot_right-plot_left)/max(1,len(history)-1)
                for i,d in enumerate(scan_dates)]
-    if full_timeline:
-        # Label real scan dates, reserving enough room for adjacent labels.
-        labeled_indices={0,len(history)-1}
-        last_x=positions[0]
+    date_format=config.get("history_date_format", "month_year")
+    def date_label(d):
+        if date_format=="us_full":
+            return f"{d.month:02d}/{d.day:02d}/{d.year}"
+        if date_format=="us_short":
+            return f"{d.month}/{d.day}/{str(d.year)[2:]}"
+        return f"{d.strftime('%b')} {d.year}"
+    labels=[date_label(d) for d in scan_dates]
+    font_size=6.7
+    # Labels are centered on their actual points, with collision avoidance.
+    # Always retain the first and last dates; select intermediate dates only
+    # when their text fits between the already-selected labels.
+    labeled_indices={0,len(history)-1}
+    if len(history)>2:
+        last_right=positions[0]+pdfmetrics.stringWidth(labels[0],"Helvetica",font_size)/2
+        final_left=positions[-1]-pdfmetrics.stringWidth(labels[-1],"Helvetica",font_size)/2
         for i in range(1,len(history)-1):
-            if positions[i]-last_x>=42 and positions[-1]-positions[i]>=37:
+            half=pdfmetrics.stringWidth(labels[i],"Helvetica",font_size)/2
+            if positions[i]-half >= last_right+5 and positions[i]+half <= final_left-5:
                 labeled_indices.add(i)
-                last_x=positions[i]
-    else:
-        labeled_indices=set(range(len(history)))
-    for i,h in enumerate(history):
-        if i not in labeled_indices:
-            continue
-        date_label=(str(h.scan_date)[2:7] if full_timeline else str(h.scan_date)[5:])
+                last_right=positions[i]+half
+    for i in sorted(labeled_indices):
+        label=labels[i]
         center_x=positions[i]
-        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",6.7)/2,y,date_label,6.7,color=GRAY)
+        text(center_x-pdfmetrics.stringWidth(label,"Helvetica",font_size)/2,y,label,font_size,color=GRAY)
     y-=12
     chart_rows=[
         ("Weight (lb)",lambda z:z.weight_lb,1),
