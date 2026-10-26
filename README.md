@@ -56,3 +56,25 @@ The app does **not** synthesize InBody Score, phase angle, impedance, visceral f
 - Longitudinal PDF archive includes measurement provenance and review warnings.
 
 Data is saved in the browser's localStorage. Back up to JSON/CSV regularly. The application does not perform scans or recreate instrument-derived metrics. Device model is descriptive and does not yet change field availability. No authentication or encrypted at-rest database is included, so run locally and avoid using it as a clinical record system.
+
+## Offline-first measurements
+
+Edit **`data/measurements.json`** before starting the local server. The file is the
+authoritative source for all 15 demonstration entries. Each object in `entries`
+represents one dated scan. You can edit `name`, `scan_date`, `weight_lb`,
+`body_fat_pct`, `skeletal_muscle_lb`, `visceral_fat_level`, segmental
+measurements, and other supported fields.
+
+```bash
+git pull origin main
+python -m pip install -r requirements.txt
+uvicorn app:app --reload
+```
+
+Open http://127.0.0.1:8000 and refresh after editing the JSON file.
+The application validates the file and replaces stale browser history with its
+contents at startup. Browser form edits do **not** write back to disk; edit the
+JSON file to persist changes. To start with no previous demonstration entries,
+replace the `entries` array with your own valid dated scans (at least one).
+Keep `schema_version` at 1. All provided demonstration values are synthetic,
+not actual instrument readings.
