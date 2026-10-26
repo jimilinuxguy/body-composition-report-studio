@@ -28,6 +28,20 @@ for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analys
              "Segmental Lean Analysis", "Body Composition History", "Transformation Overview",
              "For personal tracking"):
     assert term in text, f"Missing from PDF: {term}"
+# Verify each history label is inside the same visual band as its values.
+# PyMuPDF coordinates increase down the page.
+history_labels = ["Weight (lb)", "SMM (lb)", "PBF (%)", "ECW/TBW"]
+history_area = page.search_for("Body Composition History")[0]
+history_bounds = []
+for label in history_labels:
+    candidates = [r for r in page.search_for(label) if r.y0 > history_area.y1]
+    assert candidates, f"History label not found: {label}"
+    history_bounds.append(candidates[0])
+for a, b in zip(history_bounds, history_bounds[1:]):
+    assert 25 <= b.y0 - a.y0 <= 42, (
+        f"History rows not uniformly aligned: {a} vs {b}"
+    )
+assert len(history_bounds) == 4
 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
 pix.save(output / "inbody-synthetic-reference.png")
 print(f"PASS: one-page PDF, {len(words)} words, no off-page text. Artifacts in {output}")
