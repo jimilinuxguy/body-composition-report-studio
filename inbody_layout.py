@@ -171,8 +171,13 @@ def build_inbody_pdf(scan, history=None):
         low=min(numeric) if numeric else 0
         high=max(numeric) if numeric else 1
         # Give small changes visual context rather than filling the plot height.
-        if label=="ECW/TBW" and numeric and .36<=low<=high<=.40:
-            low,high=.36,.40
+        if label=="ECW/TBW" and numeric:
+            # Zoom this low-variance ratio to its observed range while retaining
+            # padding so small but meaningful trends are visible. A constant
+            # series stays flat, and values never exceed the plot bounds.
+            pad=max((high-low)*.25, .001)
+            low-=pad
+            high+=pad
         else:
             pad=max((high-low)*.25, .004 if label=="ECW/TBW" else .5)
             low-=pad
