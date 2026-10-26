@@ -168,6 +168,13 @@ def build_inbody_pdf(scan, history=None):
         numeric=[v for v in values if v is not None]
         low=min(numeric) if numeric else 0
         high=max(numeric) if numeric else 1
+        # Give small changes visual context rather than filling the plot height.
+        if label=="ECW/TBW" and numeric and .36<=low<=high<=.40:
+            low,high=.36,.40
+        else:
+            pad=max((high-low)*.25, .004 if label=="ECW/TBW" else .5)
+            low-=pad
+            high+=pad
         span=max(high-low,.001)
         # Value labels occupy the top of the band; plotted points occupy
         # the lower half, with 4 pt minimum clearance to the next band.
