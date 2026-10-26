@@ -164,3 +164,13 @@ def test_six_month_synthetic_report_summary_and_disclosure():
     for day in dates:
         assert day[5:] in text
     assert "No device-only values are inferred." not in text
+
+def test_offline_measurements_endpoint():
+    response=client.get('/api/local/measurements')
+    assert response.status_code==200,response.text
+    scans=response.json()['entries']
+    assert len(scans)==15
+    assert scans[0]['weight_lb']==522.4
+    assert scans[-1]['weight_lb']==192.4
+    assert scans[-1]['skeletal_muscle_lb']==85.3
+    assert all('SYNTHETIC' in item['notes'] for item in scans)
