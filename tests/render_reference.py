@@ -2,13 +2,14 @@
 import json
 import sys
 from pathlib import Path
+from datetime import date
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import pymupdf as fitz
 from app import Scan
-from inbody_layout import build_inbody_pdf
+from inbody_layout import build_inbody_pdf, report_config
 entries = json.loads((ROOT / "data" / "measurements.json").read_text())["entries"]
 scans = [Scan.model_validate(e) for e in entries]
 assert len(scans) >= 6
@@ -29,8 +30,20 @@ for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analys
              "Research Parameters"):
     assert term in text, f"Missing from PDF: {term}"
 # The full-history default must include the first and last dates/weights.
-assert "May 2024" in text and "Oct 2026" in text, "Full history endpoints missing"
-assert "522.4" in text and "192.4" in text, "Full history weights missing"
+config = report_config()
+def date_label(raw):
+    d = date.fromisoformat(str(raw))
+    fmt = config.get("history_date_format", "month_year")
+    if fmt == "us_short":
+        return f"{d.month}/{d.day}/{str(d.year)[2:]}"
+    if fmt == "us_full":
+        return f"{d.month:02d}/{d.day:02d}/{d.year}"
+    return f"{d.strftime('%b')} {d.year}"
+
+visible = scans if config.get("history_mode", "full") == "full" else scans[-config.get("history_recent_count", 6):]
+assert date_label(visible[0].scan_date) in text, "First visible history date missing"
+assert date_label(visible[-1].scan_date) in text, "Last visible history date missing"
+assert f"{visible[0].weight_lb:.1f}" in text and f"{visible[-1].weight_lb:.1f}" in text, "History endpoint weights missing"
 # Guard against explanatory captions intruding into the next section heading.
 for heading in ("Obesity Analysis", "ECW / TBW Analysis"):
     heading_rect = page.search_for(heading)[0]
@@ -43,7 +56,7 @@ for heading in ("Obesity Analysis", "ECW / TBW Analysis"):
 # Full-width history replaces the two right-column sections.
 assert "Results Interpretation" not in text
 assert "Impedance (ohms)" not in text
-for scan in scans:
+for scan in visible:
     assert f"{scan.weight_lb:.1f}" in text
 
 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
