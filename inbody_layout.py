@@ -147,7 +147,7 @@ def build_inbody_pdf(scan, history=None):
     for i,h in enumerate(history):
         date_label=str(h.scan_date)[5:]
         center_x=hx+11+i*cw
-        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",6.1)/2,y,date_label,6.1,color=GRAY)
+        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",6.8)/2,y,date_label,6.8,color=GRAY)
     y-=12
     chart_rows=[
         ("Weight (lb)",lambda z:z.weight_lb,1),
@@ -163,7 +163,7 @@ def build_inbody_pdf(scan, history=None):
             c.setFillColor(colors.HexColor("#f4f6f7"))
             c.rect(x,bottom,LEFT,band_h,stroke=0,fill=1)
         # Label is centered vertically against its *own* plot, never the next row.
-        text(x+3,top-21,label,7.8,True)
+        text(x+3,bottom+11,label,8,True)
         values=[fn(h) for h in history]
         numeric=[v for v in values if v is not None]
         low=min(numeric) if numeric else 0
@@ -176,7 +176,7 @@ def build_inbody_pdf(scan, history=None):
             px=hx+11+i*cw
             if v is not None:
                 value_label=value(v,decimals)
-                text(px-pdfmetrics.stringWidth(value_label,"Helvetica",6.3)/2,top-10,value_label,6.3)
+                text(px-pdfmetrics.stringWidth(value_label,"Helvetica",6.8)/2,top-10,value_label,6.8)
                 py=bottom+6+11*(v-low)/span
                 points.append((px,py))
         for p,q in zip(points,points[1:]):
