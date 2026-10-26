@@ -158,7 +158,7 @@ def test_six_month_synthetic_report_summary_and_disclosure():
     assert len(reader.pages) == 1
     text = reader.pages[0].extract_text()
     for expected in ("Transformation Overview", "-100.0 lb", "-28.9 pp",
-                     "+10.2 lb", "-17.0", "0.379",
+                     "+10.2 lb", "0.379",
                      "SYNTHETIC DEMONSTRATION", "NOT REAL SCAN RESULTS"):
         assert expected in text, expected
     for day in dates:
@@ -174,3 +174,25 @@ def test_offline_measurements_endpoint():
     assert scans[-1]['weight_lb']==192.4
     assert scans[-1]['skeletal_muscle_lb']==85.3
     assert all('SYNTHETIC' in item['notes'] for item in scans)
+
+
+def test_full_journey_and_recent_six_have_distinct_weight_changes():
+    import io
+    from pypdf import PdfReader
+    from pathlib import Path
+    import json
+    from app import ROOT
+    entries=json.loads((ROOT/'data'/'measurements.json').read_text())['entries']
+    response=client.post('/api/inbody/sheet',json={
+        'scan':entries[-1],'history':entries[:-1]
+    })
+    assert response.status_code==200,response.text
+    reader=PdfReader(io.BytesIO(response.content))
+    assert len(reader.pages)==1
+    text=reader.pages[0].extract_text()
+    for expected in ('Total weight','Recent weight','Recent body fat',
+                     'Recent muscle','-330.0 lb','-101.7 lb','+10.2 lb',
+                     'SYNTHETIC DEMONSTRATION'):
+        assert expected in text,expected
+    assert '05-15' not in text  # recent-six chart, not fifteen overcrowded columns
+    assert '10-26' in text
