@@ -449,9 +449,13 @@
       "trunk_fat_lb": 12.04,
       "right_leg_fat_lb": 3.85,
       "left_leg_fat_lb": 3.84,
-      "notes": "Sample control goal: 190 lb target, maintain muscle; illustrative, not a clinical recommendation.",
+      "notes": "Sample control goal: 190 lb target, maintain muscle; illustrative, not a clinical recommendation. | BMR is a Mifflin-St Jeor equation estimate, not a device measurement. Segmental reference percentages, InBody Score, waist/hip ratio, phase angle and impedance require source measurements; not invented.",
       "target_weight_lb": 190,
-      "muscle_control_lb": 0
+      "muscle_control_lb": 0,
+      "basal_metabolic_rate_kcal": 1805,
+      "field_sources": {
+        "basal_metabolic_rate_kcal": "calculated"
+      }
     }
   ]
 }
