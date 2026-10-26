@@ -28,6 +28,9 @@ for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analys
              "Segmental Lean Analysis", "Body Composition History", "Transformation Overview",
              "Impedance (ohms)"):
     assert term in text, f"Missing from PDF: {term}"
+# The full-history default must include the first and last dates/weights.
+assert "24-05" in text and "26-10" in text, "Full history endpoints missing"
+assert "522.4" in text and "192.4" in text, "Full history weights missing"
 # Guard against explanatory captions intruding into the next section heading.
 for heading in ("Obesity Analysis", "ECW / TBW Analysis"):
     heading_rect = page.search_for(heading)[0]
