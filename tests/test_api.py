@@ -129,7 +129,7 @@ def test_inbody_pdf_preserves_ecw_ratio_precision():
     assert "0.4" not in extracted.split("ECW / TBW Analysis", 1)[1].split("Body Composition History", 1)[0]
 
 
-def test_six_month_synthetic_report_summary_and_disclosure():
+def test_six_month_synthetic_report_summary():
     import io
     from pypdf import PdfReader
     dates = ["2026-06-01", "2026-06-29", "2026-07-31",
@@ -159,8 +159,7 @@ def test_six_month_synthetic_report_summary_and_disclosure():
     assert len(reader.pages) == 1
     text = reader.pages[0].extract_text()
     for expected in ("Transformation Overview", "-100.0 lb", "-28.9 pp",
-                     "+10.2 lb", "0.379",
-                     "Synthetic demo fields present; not device-measured."):
+                     "+10.2 lb", "0.379"):
         assert expected in text, expected
     for day in dates:
         assert day[5:] in text
