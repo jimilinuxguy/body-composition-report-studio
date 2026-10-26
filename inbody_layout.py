@@ -166,7 +166,7 @@ def build_inbody_pdf(scan, history=None):
         ("PBF (%)",lambda z:z.body_fat_pct,1),
         ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
     ]
-    band_h=39
+    band_h=45
     for row_index,(label,fn,decimals) in enumerate(chart_rows):
         top=y
         bottom=top-band_h
@@ -174,7 +174,7 @@ def build_inbody_pdf(scan, history=None):
             c.setFillColor(colors.HexColor("#f4f6f7"))
             c.rect(x,bottom,LEFT,band_h,stroke=0,fill=1)
         # Label is centered vertically against its *own* plot, never the next row.
-        text(x+3,bottom+12,label,8,True)
+        text(x+3,bottom+15,label,8,True)
         values=[fn(h) for h in history]
         numeric=[v for v in values if v is not None]
         low=min(numeric) if numeric else 0
@@ -203,7 +203,7 @@ def build_inbody_pdf(scan, history=None):
                 font="Helvetica-Bold" if is_latest else "Helvetica"
                 font_size=7.1 if is_latest else 6.8
                 text(px-pdfmetrics.stringWidth(value_label,font,font_size)/2,top-10,value_label,font_size,is_latest,RED if is_latest else INK)
-                py=bottom+5+17*(v-low)/span
+                py=bottom+7+22*(v-low)/span
                 points.append((px,py))
         for p,q in zip(points,points[1:]):
             line(*p,*q,RED,1)
@@ -251,8 +251,9 @@ def build_inbody_pdf(scan, history=None):
     ry=section(rx,ry,RIGHT_W,"Visceral Fat Level")
     ry=small_row(rx,ry,"Level",scan.visceral_fat_level)
     bar(rx+7,ry+2,165,scan.visceral_fat_level,0,20)
-    text(rx+7,ry-9,"Display scale: 0–20",6,color=GRAY)
-    ry-=24
+    text(rx+7,ry-11,"0",6.7,color=GRAY)
+    text(rx+RIGHT_W-15,ry-11,"20",6.7,color=GRAY)
+    ry-=26
     ry=section(rx,ry,RIGHT_W,"Research Parameters")
     research=[
         ("Basal Metabolic Rate", None if scan.basal_metabolic_rate_kcal is None else f"{scan.basal_metabolic_rate_kcal:,.0f} kcal/day"),
@@ -316,7 +317,18 @@ def build_inbody_pdf(scan, history=None):
             c.drawRightString(rx+RIGHT_W-3,ry,display)
             line(rx,ry-5,rx+RIGHT_W,ry-5)
             ry-=18
-        change_row("Total weight",original.weight_lb,last.weight_lb," lb")
+        # Make the lifetime result the visual anchor of the summary.
+        if original.weight_lb is not None and last.weight_lb is not None:
+            lifetime_delta=last.weight_lb-original.weight_lb
+            c.setFillColor(colors.HexColor("#f5f0f1"))
+            c.roundRect(rx,ry-42,RIGHT_W,35,4,stroke=0,fill=1)
+            text(rx+8,ry-18,"LIFETIME WEIGHT CHANGE",6.5,True,GRAY)
+            c.setFont("Helvetica-Bold",15)
+            c.setFillColor(RED)
+            c.drawRightString(rx+RIGHT_W-8,ry-34,f"{lifetime_delta:+.1f} lb")
+            ry-=49
+        else:
+            change_row("Total weight",original.weight_lb,last.weight_lb," lb")
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
