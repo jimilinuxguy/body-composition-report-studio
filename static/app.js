@@ -33,13 +33,22 @@ function rows(id,items){document.getElementById(id).innerHTML=items.map(([label,
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function inbodySheetPayload(){
  const current=data();
- const matching=entries.filter(e=>e.report_type==='inbody'&&
-   String(e.name||'').trim().toLowerCase()===String(current.name||'').trim().toLowerCase());
- const byDate=new Map(matching.map(e=>[e.scan_date,e]));
- // Unsaved edits to the current date take precedence; other saved dates remain in history.
- byDate.set(current.scan_date,current);
+ const inbodyEntries=entries.filter(e=>e.report_type==='inbody');
+ const name=String(current.name||'').trim().toLowerCase();
+ const matching=inbodyEntries.filter(e=>String(e.name||'').trim().toLowerCase()===name);
+ const saved=matching.length?matching:(new Set(inbodyEntries.map(e=>String(e.name||'').trim().toLowerCase())).size===1?inbodyEntries:[]);
+ const byDate=new Map(saved.map(e=>[e.scan_date,e]));
+ const savedCurrent=byDate.get(current.scan_date);
+ // Empty form fields must not erase recorded measurements for the same date.
+ const merged=savedCurrent?{...savedCurrent,...Object.fromEntries(Object.entries(current).filter(([k,v])=>v!==null&&v!==undefined&&v!==''))}:current;
+ const isMatchingPerson=saved.length&&String(saved[0].name||'').trim().toLowerCase()===name;
+ // When the form is on a different date/person, report the latest saved scan,
+ // rather than a mostly empty default form. Never invent absent device values.
+ const useSaved= saved.length && !savedCurrent && (!isMatchingPerson || !matching.length || !current.skeletal_muscle_lb);
+ const scan=useSaved?[...saved].sort((a,b)=>a.scan_date.localeCompare(b.scan_date)).at(-1):merged;
+ if(!useSaved)byDate.set(scan.scan_date,scan);
  const history=[...byDate.values()].sort((a,b)=>a.scan_date.localeCompare(b.scan_date));
- return {scan:current,history};
+ return {scan,history};
 }
 function schedulePrintablePreview(){
  const kind=reportType();
