@@ -86,71 +86,6 @@ let entries=[];
 try{entries=JSON.parse(localStorage.getItem(historyKey)||'[]');if(!Array.isArray(entries))entries=[]}catch(_){entries=[]}
 
 
-const syntheticTimeline=[
- ['2024-05-15',522.4,64.2,68.2,20],
- ['2024-08-12',487.1,61.5,69.4,20],
- ['2024-11-08',452.8,58.3,70.1,20],
- ['2025-02-19',420.6,55.4,71.3,20],
- ['2025-05-23',392.2,52.7,72.6,20],
- ['2025-08-14',365.9,50.0,73.8,20],
- ['2025-11-21',339.1,47.9,74.2,20],
- ['2026-02-17',317.8,45.3,74.9,20],
- ['2026-04-22',301.7,43.1,74.6,20],
- ['2026-06-01',294.1,42.3,75.1,20],
- ['2026-06-29',270.8,38.4,76.8,17],
- ['2026-07-31',244.6,32.6,78.9,13],
- ['2026-08-27',222.9,26.1,78.5,10],
- ['2026-09-30',205.7,19.3,82.6,6],
- ['2026-10-26',192.4,13.2,85.3,3]
-];
-function buildSyntheticTimeline(){
- const r=(v,n=1)=>Number(v.toFixed(n));
- const regions=['right_arm','left_arm','trunk','right_leg','left_leg'];
- const leanShares=[.059,.057,.447,.161,.159];
- const fatShares=[.053,.052,.478,.151,.149];
- return syntheticTimeline.map(([scan_date,weight_lb,body_fat_pct,skeletal_muscle_lb,visceral_fat_level],i)=>{
-  const fat=weight_lb*body_fat_pct/100, lean=weight_lb-fat;
-  const water=r(lean*[.731,.730,.732,.729,.731][i%5]);
-  const ecw_tbw_ratio=r(.394-(i/14)*.015+([0,.001,-.001,0][i%4]),3);
-  const extracellular_water_lb=r(water*ecw_tbw_ratio);
-  const intracellular_water_lb=r(water-extracellular_water_lb);
-  const minerals_lb=r(lean*.055);
-  const protein_lb=r(lean-water-minerals_lb);
-  const scan={
-   report_type:'inbody',source:'estimated',
-   device_model:'SYNTHETIC DEMO — not an InBody measurement',
-   name:'Jimi Sanchez',scan_date,sex:'male',age:38+Number(scan_date.slice(0,4))-2024,height_in:71,
-   weight_lb,body_fat_pct,skeletal_muscle_lb,visceral_fat_level,
-   total_body_water_lb:water,extracellular_water_lb,intracellular_water_lb,
-   ecw_tbw_ratio,minerals_lb,protein_lb,
-   soft_lean_mass_lb:r(lean-minerals_lb),
-   body_cell_mass_lb:r(intracellular_water_lb+protein_lb),
-   field_sources:{},
-   notes:'SYNTHETIC DEMONSTRATION DATA. Fictional measurements for software testing, not a real DEXA or InBody scan. Segmental values are illustrative. Impedance and proprietary scores were not measured.'
-  };
-  regions.forEach((region,j)=>{
-   const adjustment=1+([.008,-.006,.002,-.004,.005][(i+j)%5]);
-   scan[region+'_lean_lb']=r(lean*leanShares[j]*adjustment,2);
-   scan[region+'_fat_lb']=r(fat*fatShares[j]*(1+([.015,-.008,.003][(i+j)%3])),2);
-  });
-  return scan;
- });
-}
-document.querySelector('#load-demo-history').onclick=()=>{
- const confirmed=window.confirm('Replace the active measurement history with 15 FICTIONAL scans (May 2024–October 2026)? Existing history will be backed up locally first.');
- if(!confirmed)return;
- const next=buildSyntheticTimeline();
- if(next.length!==15||Math.abs(next[0].weight_lb-next.at(-1).weight_lb-330)>1e-8||
-    next[9].weight_lb-next.at(-1).weight_lb<100)throw Error('Synthetic dataset validation failed');
- const backup='bodycomp.history.backup.'+new Date().toISOString();
- const old=localStorage.getItem(historyKey);
- if(old!==null)localStorage.setItem(backup,old);
- entries=next;
- persist();
- fillScan(entries.at(-1));
- document.querySelector('#error').textContent='Loaded 15 clearly labeled synthetic scans. '+(old===null?'No previous history to back up.':'Previous history backed up to '+backup+'.');
-};
-
 function persist(){localStorage.setItem(historyKey,JSON.stringify(entries));drawHistory();schedulePrintablePreview()}
 function fillScan(d){form.querySelector(`[name=report_type][value=${d.report_type}]`).checked=true;renderInputs();for(const [k,v] of Object.entries(d)){if(k==='report_type')continue;if(k==='field_sources'){Object.entries(v||{}).forEach(([field,source])=>{const sel=form.elements.namedItem('provenance__'+field);if(sel)sel.value=source});continue}const el=form.elements.namedItem(k);if(el&&'value' in el)el.value=v??''}update();window.scrollTo({top:0,behavior:'smooth'})}
 function addEntry(){const d=data();if(!form.reportValidity())return;const err=document.querySelector('#error');err.textContent='';if(entries.length&&entries[0].name.trim().toLowerCase()!==d.name.trim().toLowerCase()){err.textContent='History supports one person at a time. Export or clear the existing history first.';return}const idx=entries.findIndex(e=>e.scan_date===d.scan_date);if(idx>=0)entries[idx]=d;else entries.push(d);entries.sort((a,b)=>a.scan_date.localeCompare(b.scan_date));persist()}
@@ -221,3 +156,25 @@ const historyWorkspace=document.querySelector('#trends');
 historyWorkspace.classList.add('workspace-history');
 document.querySelector('main').appendChild(historyWorkspace);
 setupWizard();
+
+async function loadOfflineMeasurements(){
+ const status=document.querySelector('#error');
+ try{
+  const response=await fetch('/api/local/measurements',{cache:'no-store'});
+  if(!response.ok){
+   const detail=await response.json().catch(()=>({detail:response.statusText}));
+   throw new Error(typeof detail.detail==='string'?detail.detail:JSON.stringify(detail.detail));
+  }
+  const document=await response.json();
+  if(!Array.isArray(document.entries))throw new Error('Missing offline measurement entries');
+  // The local JSON file is authoritative: replace stale browser history.
+  entries=document.entries;
+  localStorage.removeItem(historyKey);
+  persist();
+  if(entries.length)fillScan(entries.at(-1));
+  status.textContent='Loaded '+entries.length+' entries from data/measurements.json (local file). Edit the file and refresh to reload.';
+ }catch(error){
+  status.textContent='Offline measurements not loaded: '+error.message;
+ }
+}
+loadOfflineMeasurements();
