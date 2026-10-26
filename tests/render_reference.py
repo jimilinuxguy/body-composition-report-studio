@@ -29,7 +29,7 @@ for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analys
              "Impedance (ohms)"):
     assert term in text, f"Missing from PDF: {term}"
 # The full-history default must include the first and last dates/weights.
-assert "24-05" in text and "26-10" in text, "Full history endpoints missing"
+assert "May 2024" in text and "Oct 2026" in text, "Full history endpoints missing"
 assert "522.4" in text and "192.4" in text, "Full history weights missing"
 # Guard against explanatory captions intruding into the next section heading.
 for heading in ("Obesity Analysis", "ECW / TBW Analysis"):
@@ -56,7 +56,7 @@ for a, b in zip(history_bounds, history_bounds[1:]):
 assert len(history_bounds) == 4
 # Each date and its weight value must have matching horizontal text centers.
 # This catches a visual drift that string-presence tests cannot detect.
-date_rects = [r for r in page.search_for("06-01") if r.y0 > history_area.y1]
+date_rects = [r for r in page.search_for("Jun 2026") if r.y0 > history_area.y1]
 value_rects = [r for r in page.search_for("294.1") if r.y0 > history_area.y1]
 if date_rects and value_rects:
     date_center = (date_rects[0].x0 + date_rects[0].x1) / 2
