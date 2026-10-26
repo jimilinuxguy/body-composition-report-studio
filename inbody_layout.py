@@ -176,7 +176,7 @@ def build_inbody_pdf(scan, history=None):
             px=hx+11+i*cw
             if v is not None:
                 value_label=value(v,decimals)
-                text(px-c.pdfmetrics.stringWidth(value_label,"Helvetica",6.3)/2,top-10,value_label,6.3)
+                text(px-pdfmetrics.stringWidth(value_label,"Helvetica",6.3)/2,top-10,value_label,6.3)
                 py=bottom+6+11*(v-low)/span
                 points.append((px,py))
         for p,q in zip(points,points[1:]):
