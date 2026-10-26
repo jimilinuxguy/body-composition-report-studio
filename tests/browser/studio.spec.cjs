@@ -4,7 +4,8 @@ test('home page initializes without JavaScript errors and renders regional previ
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
-  await expect(page.locator('#sheet')).toBeVisible();
+  await expect(page.locator('#pdf-live-preview')).toBeVisible();
+  await expect(page.locator('#pdf-live-preview')).toHaveAttribute('src', /blob:/, { timeout: 15000 });
   await expect(page.locator('#segmental-preview')).toContainText('SEGMENTAL BODY COMPOSITION');
   await expect(page.locator('#segmental-preview')).toContainText('Right arm');
   await expect(page.locator('#segmental-preview')).toContainText('Left leg');
