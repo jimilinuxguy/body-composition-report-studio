@@ -119,7 +119,7 @@ function buildSyntheticTimeline(){
   const scan={
    report_type:'inbody',source:'estimated',
    device_model:'SYNTHETIC DEMO — not an InBody measurement',
-   name:'Jimi Sanchez',scan_date,sex:'male',age:40,height_in:71,
+   name:'Jimi Sanchez',scan_date,sex:'male',age:38+Number(scan_date.slice(0,4))-2024,height_in:71,
    weight_lb,body_fat_pct,skeletal_muscle_lb,visceral_fat_level,
    total_body_water_lb:water,extracellular_water_lb,intracellular_water_lb,
    ecw_tbw_ratio,minerals_lb,protein_lb,
