@@ -158,6 +158,20 @@ def home(request: Request):
 def report(s: Scan):
     return {'scan':s.model_dump(mode='json'), 'metrics':metrics(s), 'warnings':quality_checks(s)}
 
+class InBodySheetRequest(BaseModel):
+    scan: Scan
+    history: list[Scan] = Field(default_factory=list, max_length=250)
+
+@app.post('/api/inbody/sheet')
+def inbody_sheet(req: InBodySheetRequest):
+    from inbody_layout import build_inbody_pdf
+    current=req.scan
+    history=[s for s in req.history if s.name.strip().lower()==current.name.strip().lower() and s.scan_date!=current.scan_date]
+    history.append(current)
+    data=build_inbody_pdf(current,history)
+    return StreamingResponse(io.BytesIO(data),media_type='application/pdf',
+        headers={'Content-Disposition':'attachment; filename="inbody_generated_report.pdf"'})
+
 @app.post('/api/pdf')
 def pdf(s: Scan):
     data = create_pdf(s)
