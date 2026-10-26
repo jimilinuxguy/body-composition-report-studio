@@ -114,3 +114,15 @@ def test_inbody_renderer_imports_and_builds_pdf_directly():
     pdf_bytes = build_inbody_pdf(scan)
     assert pdf_bytes.startswith(b"%PDF")
     assert len(pdf_bytes) > 1000
+
+def test_inbody_pdf_preserves_ecw_ratio_precision():
+    from inbody_layout import build_inbody_pdf
+    from app import Scan
+    from pypdf import PdfReader
+    from io import BytesIO
+    sample = dict(VALID_SCAN)
+    sample.update(report_type="inbody", ecw_tbw_ratio=0.379)
+    pdf = build_inbody_pdf(Scan.model_validate(sample))
+    extracted = PdfReader(BytesIO(pdf)).pages[0].extract_text()
+    assert "0.379" in extracted
+    assert "0.4" not in extracted.split("ECW / TBW Analysis", 1)[1].split("Body Composition History", 1)[0]
