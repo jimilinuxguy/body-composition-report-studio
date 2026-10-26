@@ -19,7 +19,7 @@ def build_inbody_pdf(scan, history=None):
     """Draw the same printable sheet used by the browser preview."""
     history=sorted(history or [scan],key=lambda x:x.scan_date)[-6:]
     out=io.BytesIO()
-    c=canvas.Canvas(out,pagesize=letter,pageCompression=0)
+    c=canvas.Canvas(out,pagesize=A4,pageCompression=0)
     c.setTitle("Generated InBody-style body composition report")
     def text(x,y,s,size=8,bold=False,color=INK):
         c.setFont("Helvetica-Bold" if bold else "Helvetica",size)
