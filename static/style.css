@@ -36,3 +36,27 @@ aside{padding:26px;min-width:0}
 @media(max-width:1180px){main{grid-template-columns:minmax(440px,520px) minmax(0,1fr);padding:16px;gap:16px}aside{padding:18px}}
 @media(max-width:900px){main{grid-template-columns:minmax(0,1fr)}#extras .region-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){#extras .cols,#extras .region-grid{grid-template-columns:1fr}#extras .region-card .cols{grid-template-columns:1fr}#extras>.measurement-group{padding:14px}aside{padding:16px}}
+
+
+/* Compact measurement entry: labels and values remain readable without duplicate full-width selects */
+#extras .measurement-row{display:block;min-width:0;margin:0;padding:8px 0;border-bottom:1px solid #e6edf2}
+#extras .measurement-label{display:block;min-height:18px;font-size:12px;font-weight:600;line-height:1.35;margin-bottom:5px}
+#extras .measurement-controls{display:flex;gap:7px;align-items:stretch}
+#extras .measurement-controls input:not([type=radio]):not([type=file]){flex:1;width:0;min-width:0;height:36px;margin:0;padding:7px 9px}
+#extras .measurement-controls select{flex:0 0 48px;width:48px;min-width:48px;height:36px;margin:0;padding:5px;font-weight:700;text-align:center}
+#extras .region-card{padding:12px}
+#extras .region-card .cols{gap:3px}
+#extras .measurement-group .cols{gap:5px 16px}
+#extras .region-grid{gap:10px}
+#extras .region-card h4{margin-bottom:6px}
+#segmental-preview{margin-top:16px}
+#segmental-preview .segmental-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#segmental-preview .segmental-preview-region{border:1px solid #dce6ed;border-radius:7px;padding:11px;min-width:0}
+#segmental-preview .segmental-preview-region h4{font-size:12px;color:#006d89;margin:0 0 8px}
+#segmental-preview .segmental-preview-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid #edf1f4;font-size:11px}
+#segmental-preview .segmental-preview-row strong{font-size:11px;text-align:right;white-space:nowrap}
+#trends.workspace-history{grid-column:1/-1;min-width:0;margin-top:0;padding:24px;background:#fff}
+#trends.workspace-history #trend-charts,#trends.workspace-history #extra-trend-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#trends.workspace-history .trend{min-width:0}
+@media(max-width:900px){#trends.workspace-history #trend-charts,#trends.workspace-history #extra-trend-charts{grid-template-columns:1fr}}
+@media(max-width:560px){#segmental-preview .segmental-preview-grid{grid-template-columns:1fr}}
