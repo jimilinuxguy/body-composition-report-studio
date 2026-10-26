@@ -449,7 +449,9 @@
       "trunk_fat_lb": 12.04,
       "right_leg_fat_lb": 3.85,
       "left_leg_fat_lb": 3.84,
-      "notes": ""
+      "notes": "Sample control goal: 190 lb target, maintain muscle; illustrative, not a clinical recommendation.",
+      "target_weight_lb": 190,
+      "muscle_control_lb": 0
     }
   ]
 }
