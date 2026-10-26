@@ -226,12 +226,12 @@ def build_inbody_pdf(scan, history=None):
         "and fat-free mass.",
         "BMI is derived from weight and height.",
     ]
-    if is_synthetic or config["show_segmental_disclaimer"]:
+    if is_synthetic or config.get("show_segmental_disclaimer",True):
         interpretation.extend([
             "Segmental values are illustrative" if is_synthetic else "Segmental values are shown only",
             "and not device-measured." if is_synthetic else "when supplied by the user.",
         ])
-    if is_synthetic or config["show_device_values_disclaimer"]:
+    if is_synthetic or config.get("show_device_values_disclaimer",True):
         interpretation.append("Device-only fields may be unavailable." if is_synthetic else "No device-only values are inferred.")
     for msg in interpretation:
         text(rx+2,ry,msg,7,color=GRAY)
@@ -271,7 +271,7 @@ def build_inbody_pdf(scan, history=None):
     line(MARGIN,43,W-MARGIN,43,RED,1)
     if is_synthetic or config["show_generated_footer_notice"]:
         text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
-    if is_synthetic or config["show_tracking_footer"]:
+    if is_synthetic or config.get("show_tracking_footer",True):
         text(MARGIN,19,("Fictional software demonstration - not for medical use." if is_synthetic else "For personal tracking; not a diagnostic or device-verified measurement."),6.8,color=GRAY)
     c.save()
     return out.getvalue()
