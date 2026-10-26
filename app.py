@@ -183,6 +183,9 @@ async def import_csv(file: UploadFile = File(...)):
         raise HTTPException(422, detail=f'CSV could not be imported: {e}')
 
 def create_pdf(s: Scan) -> bytes:
+    if s.report_type == 'inbody':
+        from inbody_layout import build_inbody_pdf
+        return build_inbody_pdf(s)
     buf = io.BytesIO(); c = canvas.Canvas(buf, pagesize=letter)
     W,H = letter
     ink = colors.HexColor('#17283a'); accent = colors.HexColor('#006d89') if s.report_type=='inbody' else colors.HexColor('#385c9a')
