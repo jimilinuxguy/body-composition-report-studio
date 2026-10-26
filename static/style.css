@@ -2,3 +2,37 @@
 #history-panel,#trends{margin-top:22px;padding:16px;border:1px solid #dce5ed;border-radius:10px;background:white}#history-panel h2,#trends h2{font-size:18px}.history-row{display:flex;gap:7px;align-items:center;justify-content:space-between;border-bottom:1px solid #e4eaf0;padding:8px 0;font-size:12px}.history-row span{flex:1}.history-row button{padding:6px 8px;font-size:11px}.trend{padding:10px;border:1px solid #e2e9ef;border-radius:8px;margin-bottom:10px}.trend h3{background:transparent!important;color:#20354a!important;font-size:13px!important;margin:0 0 5px!important;padding:0!important}.trend svg{width:100%;height:auto}.table-scroll{overflow:auto}#history-table table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}#history-table th,#history-table td{border-bottom:1px solid #dce5ed;padding:8px;text-align:left}#history-table th{background:#edf3f8}
 
 #wizard{border:1px solid #d9e4ed;border-radius:10px;padding:12px;margin:14px 0;background:#f4f8fb}.wizard-head,.wizard-actions{display:flex;justify-content:space-between;gap:8px;align-items:center}.wizard-actions{margin-top:12px;flex-wrap:wrap}.wizard-actions button{flex:1;min-width:100px}#extras select{font-size:12px;padding:5px;margin-top:4px}#quality{font-size:13px;color:#4a6172;padding:8px 0}#extras [hidden],#history-panel[hidden],#form .cols[hidden]{display:none!important}textarea{width:100%;box-sizing:border-box}
+
+/* Spacious measurement editor */
+main{grid-template-columns:minmax(540px,610px) minmax(0,1fr);align-items:start;max-width:1750px;gap:24px}
+aside{padding:26px;min-width:0}
+.preview{min-width:0}
+#extras{display:flex;flex-direction:column;gap:14px;margin-top:16px}
+#extras>.measurement-group{display:block;width:100%;min-width:0;border:1px solid #dce5ed;border-radius:12px;padding:18px;background:#fff}
+#extras>.measurement-group[open]{background:#fcfdff}
+#extras .measurement-group-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+#extras .measurement-group-head h3{font-size:15px;margin:0;color:#17364a}
+#extras .measurement-group-head span{font-size:11px;color:#698093}
+#extras details>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;color:#18374d;margin:0;list-style:none;cursor:pointer}
+#extras details>summary::-webkit-details-marker{display:none}
+#extras details>summary::before{content:'+';display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;height:24px;border-radius:6px;background:#e7f1f6;color:#006d89;font-size:19px;font-weight:600}
+#extras details[open]>summary::before{content:'−'}
+#extras details>summary span{flex:1}
+#extras details>summary small{font-size:11px;color:#708396;font-weight:500;white-space:nowrap}
+#extras details[open]>summary{margin-bottom:18px}
+#extras .cols{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+#extras label{min-width:0;font-size:12px;line-height:1.4;margin:0;color:#263d50}
+#extras input:not([type=radio]):not([type=file]){min-width:0;height:42px;margin-top:7px;font-size:14px}
+#extras select{min-width:0;height:34px;font-size:12px;margin-top:7px;padding:6px 8px}
+#extras .region-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#extras .region-card{border:1px solid #dce6ed;border-radius:10px;padding:14px;background:#f6f9fb;min-width:0}
+#extras .region-card h4{font-size:14px;color:#15516a;margin:0 0 14px}
+#extras .region-card .cols{grid-template-columns:1fr;gap:13px}
+#extras .region-card label{display:block}
+#extras .segmental-group{border-color:#aacbd9;background:#f9fcfd}
+#extras .segmental-group>summary span{color:#006d89}
+#wizard{margin:20px 0}
+#wizard .wizard-actions button{min-width:110px}
+@media(max-width:1180px){main{grid-template-columns:minmax(440px,520px) minmax(0,1fr);padding:16px;gap:16px}aside{padding:18px}}
+@media(max-width:900px){main{grid-template-columns:minmax(0,1fr)}#extras .region-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){#extras .cols,#extras .region-grid{grid-template-columns:1fr}#extras .region-card .cols{grid-template-columns:1fr}#extras>.measurement-group{padding:14px}aside{padding:16px}}
