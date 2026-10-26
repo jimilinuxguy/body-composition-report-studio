@@ -205,15 +205,18 @@ def test_full_journey_and_recent_six_have_distinct_weight_changes():
     assert '10-26' in text
 
 
-def test_generated_notices_configurable_but_synthetic_labels_remain(monkeypatch):
+def test_generated_notices_configurable_but_synthetic_disclosure_remains(monkeypatch):
     import io
     from pypdf import PdfReader
     import inbody_layout
+    from app import Scan
     monkeypatch.setattr(inbody_layout, "report_config", lambda: {
         "show_generated_header_notice": False,
-        "show_generated_footer_notice": False
+        "show_generated_footer_notice": False,
+        "show_tracking_footer": False,
+        "show_segmental_disclaimer": False,
+        "show_device_values_disclaimer": False,
     })
-    from app import Scan
     ordinary=Scan.model_validate(VALID_SCAN)
     text=PdfReader(io.BytesIO(inbody_layout.build_inbody_pdf(ordinary))).pages[0].extract_text()
     assert "GENERATED / NOT DEVICE-VERIFIED" not in text
@@ -222,8 +225,10 @@ def test_generated_notices_configurable_but_synthetic_labels_remain(monkeypatch)
         **VALID_SCAN,"notes":"SYNTHETIC DEMONSTRATION DATA"
     })
     demo=PdfReader(io.BytesIO(inbody_layout.build_inbody_pdf(synthetic))).pages[0].extract_text()
-    assert "SYNTHETIC DEMONSTRATION" in demo
-    assert "SYNTHETIC DEMO - NOT REAL SCAN RESULTS" in demo
+    assert "SYNTHETIC DEMONSTRATION - NOT REAL MEASUREMENTS" not in demo
+    assert "SYNTHETIC DEMO - NOT REAL SCAN RESULTS" not in demo
+    assert "Synthetic demo fields present; not device-measured." in demo
+    assert "Fictional software demonstration" not in demo
 
 def test_legacy_config_defaults_for_new_optional_disclaimers(monkeypatch):
     import io
