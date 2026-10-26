@@ -22,7 +22,7 @@ def report_config():
     path=Path(__file__).parent/"data"/"report_config.json"
     defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True,"show_tracking_footer":True,"show_calculated_values_note":True,"show_maintenance_control_baseline":True,"show_segmental_disclaimer":True,"show_device_values_disclaimer":True}
     if not path.exists():
-        return defaults
+        return {**defaults, "report_branding": "inbody", "history_mode": "full", "history_recent_count": 6}
     config=json.loads(path.read_text(encoding="utf-8"))
     for key in defaults:
         if key in config and not isinstance(config[key],bool):
@@ -30,17 +30,25 @@ def report_config():
     branding = config.get("report_branding", "inbody")
     if branding not in ("inbody", "generic"):
         raise ValueError("report_branding must be inbody or generic")
-    return {**defaults, **config, "report_branding": branding}
+    history_mode = config.get("history_mode", "full")
+    if history_mode not in ("full", "recent"):
+        raise ValueError("history_mode must be full or recent")
+    recent_count = config.get("history_recent_count", 6)
+    if type(recent_count) is not int or not 2 <= recent_count <= 25:
+        raise ValueError("history_recent_count must be an integer from 2 to 25")
+    return {**defaults, **config, "report_branding": branding,
+            "history_mode": history_mode, "history_recent_count": recent_count}
 
 
 def build_inbody_pdf(scan, history=None):
     """Draw the same printable sheet used by the browser preview."""
     full_history=sorted(history or [scan],key=lambda x:x.scan_date)
-    history=full_history[-6:]
-    # The six most recent scans drive the charts and recent-period deltas;
-    # the complete record remains available for lifetime comparisons.
+    # Recent comparisons always use six scans; the chart window is configurable.
+    recent_history=full_history[-6:]
     is_synthetic=("synthetic" in str(getattr(scan,"notes","")).lower() or "synthetic" in str(getattr(scan,"device_model","")).lower())
     config=report_config()
+    history=(full_history if config.get("history_mode", "full") == "full"
+             else full_history[-config.get("history_recent_count", 6):])
     out=io.BytesIO()
     c=canvas.Canvas(out,pagesize=A4,pageCompression=0)
     branding = config.get("report_branding", "inbody")
@@ -154,11 +162,19 @@ def build_inbody_pdf(scan, history=None):
     # A shared date header and four self-contained chart bands.
     # All labels, values and plots for a metric stay within its own band.
     hx=x+112
-    cw=39
+    plot_left=hx+11
+    plot_right=x+LEFT-25
+    cw=(plot_right-plot_left)/max(1,len(history)-1)
+    # Avoid crowding labels when plotting the full history.
+    label_stride=max(1, (len(history)-1+4)//5)
+    labeled_indices={0,len(history)-1}
+    labeled_indices.update(range(0,len(history),label_stride))
     for i,h in enumerate(history):
-        date_label=str(h.scan_date)[5:]
-        center_x=hx+11+i*cw
-        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",7.2)/2,y,date_label,7.2,color=GRAY)
+        if i not in labeled_indices:
+            continue
+        date_label=(str(h.scan_date)[2:7] if len(history)>9 else str(h.scan_date)[5:])
+        center_x=plot_left+i*cw
+        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",6.7)/2,y,date_label,6.7,color=GRAY)
     y-=12
     chart_rows=[
         ("Weight (lb)",lambda z:z.weight_lb,1),
@@ -196,13 +212,14 @@ def build_inbody_pdf(scan, history=None):
         # the lower half, with 4 pt minimum clearance to the next band.
         points=[]
         for i,v in enumerate(values):
-            px=hx+11+i*cw
+            px=plot_left+i*cw
             if v is not None:
                 value_label=value(v,decimals)
                 is_latest=i==len(values)-1
                 font="Helvetica-Bold" if is_latest else "Helvetica"
                 font_size=7.1 if is_latest else 6.8
-                text(px-pdfmetrics.stringWidth(value_label,font,font_size)/2,top-10,value_label,font_size,is_latest,RED if is_latest else INK)
+                if i in labeled_indices:
+                    text(px-pdfmetrics.stringWidth(value_label,font,font_size)/2,top-10,value_label,font_size,is_latest,RED if is_latest else INK)
                 py=bottom+7+22*(v-low)/span
                 points.append((px,py))
         for p,q in zip(points,points[1:]):
@@ -300,8 +317,8 @@ def build_inbody_pdf(scan, history=None):
             text(rx+42+i*28,ry,value(v,0),6.3)
         ry-=15
     # Full transformation and recent six-date window are intentionally separate.
-    if len(history)>1:
-        first,last=history[0],history[-1]
+    if len(recent_history)>1:
+        first,last=recent_history[0],recent_history[-1]
         original=full_history[0]
         ry-=18
         ry=section(rx,ry,RIGHT_W,"Transformation Overview")
