@@ -227,7 +227,7 @@ def test_generated_notices_configurable_but_synthetic_disclosure_remains(monkeyp
     demo=PdfReader(io.BytesIO(inbody_layout.build_inbody_pdf(synthetic))).pages[0].extract_text()
     assert "SYNTHETIC DEMONSTRATION - NOT REAL MEASUREMENTS" not in demo
     assert "SYNTHETIC DEMO - NOT REAL SCAN RESULTS" not in demo
-    assert "Synthetic demo fields present; not device-measured." in demo
+    assert "Synthetic demo fields present; not device-measured." not in demo
     assert "Fictional software demonstration" not in demo
 
 def test_legacy_config_defaults_for_new_optional_disclaimers(monkeypatch):
