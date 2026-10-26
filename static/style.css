@@ -60,3 +60,8 @@ aside{padding:26px;min-width:0}
 #trends.workspace-history .trend{min-width:0}
 @media(max-width:900px){#trends.workspace-history #trend-charts,#trends.workspace-history #extra-trend-charts{grid-template-columns:1fr}}
 @media(max-width:560px){#segmental-preview .segmental-preview-grid{grid-template-columns:1fr}}
+
+
+/* PDF is the single source of truth for the InBody preview and export. */
+#pdf-live-preview{display:none;width:100%;height:min(82vw,1100px);min-height:780px;border:0;background:white;box-shadow:0 6px 26px #192f3a1c}
+@media(max-width:950px){#pdf-live-preview{height:1000px}}
