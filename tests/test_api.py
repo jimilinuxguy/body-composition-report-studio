@@ -58,3 +58,51 @@ def test_dexa_pdf():
     response = client.post("/api/pdf", json=payload)
     assert response.status_code == 200, response.text
     assert response.content.startswith(b"%PDF")
+
+def test_reference_layout_pdf_has_all_required_sections():
+    import io
+    from pypdf import PdfReader
+    response = client.post("/api/inbody/sheet", json={"scan": VALID_SCAN, "history": []})
+    assert response.status_code == 200, response.text
+    reader = PdfReader(io.BytesIO(response.content))
+    assert len(reader.pages) == 1
+    page = reader.pages[0]
+    assert abs(float(page.mediabox.height) - 841.89) < 2
+    text = page.extract_text()
+    for heading in (
+        "Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analysis",
+        "Segmental Lean Analysis", "ECW / TBW Analysis", "Body Composition History",
+        "Segmental Fat Analysis", "Visceral Fat Level", "Research Parameters",
+        "Results Interpretation", "Impedance (ohms)"
+    ):
+        assert heading in text, f"Missing section: {heading}"
+    assert "NOT DEVICE-VERIFIED" in text
+    assert "Right Arm" in text
+    assert "Left Leg" in text
+
+
+def test_reference_pdf_uses_six_date_history():
+    import io
+    from datetime import date, timedelta
+    from pypdf import PdfReader
+    scans = []
+    for offset in range(7):
+        item = dict(VALID_SCAN)
+        item["scan_date"] = (date(2026, 10, 10) + timedelta(days=offset)).isoformat()
+        item["weight_lb"] = 170 + offset
+        scans.append(item)
+    response = client.post("/api/inbody/sheet", json={"scan": scans[-1], "history": scans[:-1]})
+    assert response.status_code == 200, response.text
+    text = PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
+    assert "10-11" in text
+    assert "10-16" in text
+    assert "10-10" not in text
+
+
+def test_reference_pdf_missing_device_values_are_not_fabricated():
+    import io
+    from pypdf import PdfReader
+    response = client.post("/api/inbody/sheet", json={"scan": VALID_SCAN, "history": []})
+    text = PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
+    assert "GENERATED" in text
+    assert "No device-only values are inferred." in text
