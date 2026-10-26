@@ -47,17 +47,32 @@ function setupWizard(){
  {title:'Primary device measurements',el:document.querySelector('#extras > .cols')},
  ...details.map(el=>({title:el.querySelector('summary').textContent,el})),
  {title:'Review and save',el:document.querySelector('#history-panel')}];
- wizardStep=Math.min(wizardStep,steps.length-1);
- steps.forEach((step,i)=>{if(step.el){step.el.hidden=!showAll&&wizardStep!==i;if(step.el.tagName==='DETAILS'&&(!step.el.hidden))step.el.open=true}});
- document.querySelector('#wizard-label').textContent=steps[wizardStep].title;
+ wizardStep=Math.max(0,Math.min(wizardStep,steps.length-1));
+ // Never hide measurement fields. Native details remain independently expandable.
+ steps.forEach(step=>{if(step.el)step.el.hidden=false});
+ if(showAll)details.forEach(el=>el.open=true);
+ const current=steps[wizardStep];
+ if(current.el?.tagName==='DETAILS')current.el.open=true;
+ document.querySelector('#wizard-label').textContent=current.title;
  document.querySelector('#wizard-progress').textContent=`${wizardStep+1} / ${steps.length}`;
  document.querySelector('#wizard-prev').disabled=wizardStep===0;
  document.querySelector('#wizard-next').disabled=wizardStep===steps.length-1;
- document.querySelector('#wizard-all').textContent=showAll?'Guided view':'Show all sections';
+ document.querySelector('#wizard-all').textContent=showAll?'Collapse advanced sections':'Show all sections';
 }
-document.querySelector('#wizard-prev').onclick=()=>{wizardStep=Math.max(0,wizardStep-1);showAll=false;setupWizard()};
-document.querySelector('#wizard-next').onclick=()=>{wizardStep++;showAll=false;setupWizard()};
-document.querySelector('#wizard-all').onclick=()=>{showAll=!showAll;setupWizard()};
+function goToWizardStep(next){
+ wizardStep=next;
+ setupWizard();
+ const details=[...document.querySelectorAll('#extras details')];
+ const targets=[document.querySelector('#form .cols'),document.querySelector('#extras > .cols'),...details,document.querySelector('#history-panel')];
+ targets[wizardStep]?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+document.querySelector('#wizard-prev').onclick=()=>goToWizardStep(Math.max(0,wizardStep-1));
+document.querySelector('#wizard-next').onclick=()=>goToWizardStep(wizardStep+1);
+document.querySelector('#wizard-all').onclick=()=>{
+ showAll=!showAll;
+ document.querySelectorAll('#extras details').forEach(el=>el.open=showAll);
+ setupWizard();
+};
 document.querySelector('#backup-json').onclick=()=>{
  const blob=new Blob([JSON.stringify({schema_version:4,entries},null,2)],{type:'application/json'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bodycomp_backup.json';a.click();URL.revokeObjectURL(a.href)
