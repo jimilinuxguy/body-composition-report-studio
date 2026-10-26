@@ -322,7 +322,7 @@ def build_inbody_pdf(scan, history=None):
             lifetime_delta=last.weight_lb-original.weight_lb
             c.setFillColor(colors.HexColor("#f5f0f1"))
             c.roundRect(rx,ry-42,RIGHT_W,35,4,stroke=0,fill=1)
-            text(rx+8,ry-18,"LIFETIME WEIGHT CHANGE",6.5,True,GRAY)
+            text(rx+8,ry-18,"Total weight",7,True,GRAY)
             c.setFont("Helvetica-Bold",15)
             c.setFillColor(RED)
             c.drawRightString(rx+RIGHT_W-8,ry-34,f"{lifetime_delta:+.1f} lb")
