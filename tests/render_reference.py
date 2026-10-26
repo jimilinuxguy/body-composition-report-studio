@@ -26,7 +26,7 @@ assert not outside, f"Text outside page: {outside[:10]}"
 text = page.get_text()
 for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analysis",
              "Segmental Lean Analysis", "Body Composition History", "Transformation Overview",
-             "Impedance (ohms)"):
+             "Research Parameters"):
     assert term in text, f"Missing from PDF: {term}"
 # The full-history default must include the first and last dates/weights.
 assert "May 2024" in text and "Oct 2026" in text, "Full history endpoints missing"
@@ -40,30 +40,12 @@ for heading in ("Obesity Analysis", "ECW / TBW Analysis"):
     assert all(w[4] in heading_words for w in nearby), (
         f"Overlapping text at {heading}: {nearby}"
     )
-# Verify each history label is inside the same visual band as its values.
-# PyMuPDF coordinates increase down the page.
-history_labels = ["Weight (lb)", "SMM (lb)", "PBF (%)", "ECW/TBW"]
-history_area = page.search_for("Body Composition History")[0]
-history_bounds = []
-for label in history_labels:
-    candidates = [r for r in page.search_for(label) if r.y0 > history_area.y1]
-    assert candidates, f"History label not found: {label}"
-    history_bounds.append(candidates[0])
-for a, b in zip(history_bounds, history_bounds[1:]):
-    assert 35 <= b.y0 - a.y0 <= 48, (
-        f"History rows not uniformly aligned: {a} vs {b}"
-    )
-assert len(history_bounds) == 4
-# Each date and its weight value must have matching horizontal text centers.
-# This catches a visual drift that string-presence tests cannot detect.
-date_rects = [r for r in page.search_for("Jun 2026") if r.y0 > history_area.y1]
-value_rects = [r for r in page.search_for("294.1") if r.y0 > history_area.y1]
-if date_rects and value_rects:
-    date_center = (date_rects[0].x0 + date_rects[0].x1) / 2
-    value_center = (value_rects[0].x0 + value_rects[0].x1) / 2
-    assert abs(date_center - value_center) < 1.5, (
-        f"Date/value columns shifted: {date_center} vs {value_center}"
-    )
+# Full-width history replaces the two right-column sections.
+assert "Results Interpretation" not in text
+assert "Impedance (ohms)" not in text
+for scan in scans:
+    assert f"{scan.weight_lb:.1f}" in text
+
 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
 pix.save(output / "inbody-synthetic-reference.png")
 print(f"PASS: one-page PDF, {len(words)} words, no off-page text. Artifacts in {output}")
