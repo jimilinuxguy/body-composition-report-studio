@@ -47,7 +47,7 @@ for label in history_labels:
     assert candidates, f"History label not found: {label}"
     history_bounds.append(candidates[0])
 for a, b in zip(history_bounds, history_bounds[1:]):
-    assert 25 <= b.y0 - a.y0 <= 42, (
+    assert 35 <= b.y0 - a.y0 <= 48, (
         f"History rows not uniformly aligned: {a} vs {b}"
     )
 assert len(history_bounds) == 4
