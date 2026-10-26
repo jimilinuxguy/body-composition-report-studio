@@ -59,7 +59,8 @@ def test_dexa_pdf():
     assert response.status_code == 200, response.text
     assert response.content.startswith(b"%PDF")
 
-def test_reference_layout_pdf_has_all_required_sections():
+def test_reference_layout_pdf_has_all_required_sections(monkeypatch):
+    _enable_optional_disclaimers(monkeypatch)
     import io
     from pypdf import PdfReader
     response = client.post("/api/inbody/sheet", json={"scan": VALID_SCAN, "history": []})
@@ -99,12 +100,12 @@ def test_reference_pdf_uses_six_date_history():
     assert "10-10" not in text
 
 
-def test_reference_pdf_missing_device_values_are_not_fabricated():
+def test_reference_pdf_missing_device_values_are_not_fabricated(monkeypatch):
+    _enable_optional_disclaimers(monkeypatch)
     import io
     from pypdf import PdfReader
     response = client.post("/api/inbody/sheet", json={"scan": VALID_SCAN, "history": []})
     text = PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
-    assert "No device-only values are inferred." in text
     assert "No device-only values are inferred." in text
 
 def test_inbody_renderer_imports_and_builds_pdf_directly():
@@ -237,3 +238,15 @@ def test_legacy_config_defaults_for_new_optional_disclaimers(monkeypatch):
     text = PdfReader(io.BytesIO(pdf)).pages[0].extract_text()
     assert 'For personal tracking; not a diagnostic or device-verified measurement.' in text
     assert 'No device-only values are inferred.' in text
+
+
+def _enable_optional_disclaimers(monkeypatch):
+    """Pin optional notices for assertions, regardless of user-local config."""
+    import inbody_layout
+    actual = inbody_layout.report_config()
+    monkeypatch.setattr(inbody_layout, "report_config", lambda: {
+        **actual,
+        "show_tracking_footer": True,
+        "show_segmental_disclaimer": True,
+        "show_device_values_disclaimer": True,
+    })
