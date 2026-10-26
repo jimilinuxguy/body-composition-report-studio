@@ -294,7 +294,7 @@ def build_inbody_pdf(scan, history=None):
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
     # Disclosure of invented measurements is mandatory even when optional
     # report notices are disabled. It is not a configurable decoration.
-    if is_synthetic:
+    if is_synthetic and config.get("show_generated_footer_notice", True):
         text(MARGIN,54,"Synthetic demo fields present; not device-measured.",6.8,True,RED)
     line(MARGIN,43,W-MARGIN,43,RED,1)
     if config["show_generated_footer_notice"]:
