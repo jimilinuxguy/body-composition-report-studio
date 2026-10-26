@@ -139,7 +139,7 @@ def build_inbody_pdf(scan, history=None):
     y=section(x,y,LEFT,"ECW / TBW Analysis")
     y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45,3)
     y-=5
-    y=section(x,y,LEFT,"Body Composition History (Last 6)")
+    y=section(x,y,LEFT,"Body Composition History")
     # A shared date header and four self-contained chart bands.
     # All labels, values and plots for a metric stay within its own band.
     hx=x+112
@@ -262,7 +262,7 @@ def build_inbody_pdf(scan, history=None):
             text(rx+119,ry,display,8,True)
             line(rx,ry-5,rx+RIGHT_W,ry-5)
             ry-=18
-        change_row("Lifetime weight",original.weight_lb,last.weight_lb," lb")
+        change_row("Total weight",original.weight_lb,last.weight_lb," lb")
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
