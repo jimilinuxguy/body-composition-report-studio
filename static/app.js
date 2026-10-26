@@ -63,14 +63,14 @@ function schedulePrintablePreview(){
  pdfPreviewTimer=setTimeout(async()=>{
   try{
    const response=await fetch('/api/inbody/sheet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inbodySheetPayload())});
-   if(!response.ok)throw Error('PDF preview unavailable: '+response.status);
+   if(!response.ok){const failure=await response.json().catch(()=>({detail:response.statusText}));throw Error('HTTP '+response.status+': '+(typeof failure.detail==='string'?failure.detail:JSON.stringify(failure.detail)));}
    const blob=await response.blob();
    if(serial!==pdfPreviewRequest)return;
    const url=URL.createObjectURL(blob);
    viewer.src=url+'#toolbar=0&navpanes=0&scrollbar=0';
    const previous=pdfPreviewUrl;pdfPreviewUrl=url;
    if(previous)setTimeout(()=>URL.revokeObjectURL(previous),2000);
-  }catch(err){console.warn('Printable preview:',err.message)}
+  }catch(err){console.warn('Printable preview:',err.message);const status=document.querySelector('#offline-status');if(status)status.textContent='PDF preview failed: '+err.message;const error=document.querySelector('#error');if(error)error.textContent='PDF preview failed: '+err.message;}
  },450);
 }
 function update(){const d=data();const fat=d.weight_lb*d.body_fat_pct/100;const ffm=d.weight_lb-fat;const bmi=703*d.weight_lb/d.height_in**2;const rt=reportType();document.querySelector('#kind').textContent=rt.toUpperCase()+'-STYLE | GENERATED REPORT';document.querySelector('#person').textContent=d.name||'Unnamed';document.querySelector('#date').textContent=d.scan_date||'';document.querySelector('#source').textContent='Source: '+d.source;document.querySelector('#specific-title').textContent=rt==='dexa'?'REGIONAL ANALYSIS':'MUSCLE / WATER ANALYSIS';rows('basics',[['Weight',val(d.weight_lb,' lb'),'Entered'],['Body fat',val(d.body_fat_pct,'%'),'Entered'],['Fat mass',val(fat,' lb'),'Calculated'],['Fat-free mass',val(ffm,' lb'),'Calculated'],['BMI',val(bmi),'Calculated']]);rows('specific',types[rt].map(([k,label])=>[label,val(d[k],k.endsWith('pct')?'%':' lb'),d[k]==null?'':'Entered']));rows('additional',[['Visceral fat area',val(d.visceral_fat_area_cm2,' cm²'),d.visceral_fat_area_cm2==null?'':'Entered']]);document.querySelector('#complete-inbody').innerHTML=rt==='inbody'?Object.entries(inbodyGroups).map(([group,fields])=>`<h3>${esc(group.toUpperCase())}</h3>`+fields.map(([k,label])=>`<div class="datum"><span>${esc(label)}</span><b>${val(d[k])}</b><em>${d[k]==null?'':'Entered'}</em></div>`).join('')).join(''):'';const regionNames=[['right_arm','Right arm'],['left_arm','Left arm'],['trunk','Trunk'],['right_leg','Right leg'],['left_leg','Left leg']];
