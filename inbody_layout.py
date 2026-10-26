@@ -336,7 +336,12 @@ def build_inbody_pdf(scan, history=None):
             if v is None:
                 continue
             px=positions[i]
-            py=bottom+4+(band_h-25)*(v-low)/span
+            # The previous band_h-25 left only 3pt of vertical travel in a
+            # 28pt band, making even a 330 lb change look almost flat.
+            # Use the lower plotting region while keeping labels above it.
+            plot_bottom=bottom+3
+            plot_top=top-13
+            py=plot_bottom+max(1,plot_top-plot_bottom)*(v-low)/span
             points.append((px,py))
             # Numeric annotations for every result, staggered in two lanes.
             val=value(v,decimals)
