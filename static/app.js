@@ -9,8 +9,19 @@ function reportType(){return form.querySelector('[name=report_type]:checked').va
 function renderInputs(){
  let cache=Object.fromEntries([...extras.querySelectorAll('input,select')].map(i=>[i.name,i.value]));
  const mk=([k,label])=>`<label>${label}<input type="number" step="any" name="${k}" placeholder="Not provided"><select name="provenance__${k}" aria-label="Source for ${label}"><option value="measured">Measured</option><option value="estimated">Estimated</option><option value="calculated">Calculated</option></select></label>`;
- let html=`<div class="cols">${[...types[reportType()],...common].map(mk).join('')}</div>`;
- if(reportType()==='inbody')for(const [group,fields] of Object.entries(inbodyGroups))html+=`<details><summary>${group} (${fields.length} fields)</summary><div class="cols">${fields.map(mk).join('')}</div></details>`;
+ let html=`<section class="measurement-group"><div class="measurement-group-head"><h3>Core measurements</h3><span>Enter values from your scan</span></div><div class="cols">${[...types[reportType()],...common].map(mk).join('')}</div></section>`;
+ if(reportType()==='inbody')for(const [group,fields] of Object.entries(inbodyGroups)){
+  const segmental=group==='Segmental lean / fat / fluid';
+  const byRegion=segmental?[
+   ['Right arm',fields.filter(([k])=>k.startsWith('right_arm_'))],
+   ['Left arm',fields.filter(([k])=>k.startsWith('left_arm_'))],
+   ['Trunk',fields.filter(([k])=>k.startsWith('trunk_'))],
+   ['Right leg',fields.filter(([k])=>k.startsWith('right_leg_'))],
+   ['Left leg',fields.filter(([k])=>k.startsWith('left_leg_'))]
+  ]:[];
+  const body=segmental?`<div class="region-grid">${byRegion.map(([title,items])=>`<section class="region-card"><h4>${title}</h4><div class="cols">${items.map(mk).join('')}</div></section>`).join('')}</div>`:`<div class="cols">${fields.map(mk).join('')}</div>`;
+  html+=`<details class="measurement-group ${segmental?'segmental-group':''}" ${segmental?'open':''}><summary><span>${segmental?'Segmental body composition':group}</span><small>${fields.length} optional fields</small></summary>${body}</details>`;
+ }
  extras.innerHTML=html;
  Object.entries(cache).forEach(([k,v])=>{const e=extras.querySelector(`[name=${k}]`);if(e)e.value=v});
  extras.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',update));setupWizard();
@@ -44,7 +55,7 @@ drawHistory();
 function setupWizard(){
  const details=[...document.querySelectorAll('#extras details')];
  const steps=[{title:'Basic information',el:document.querySelector('#form .cols')},
- {title:'Primary device measurements',el:document.querySelector('#extras > .cols')},
+ {title:'Primary device measurements',el:document.querySelector('#extras > .measurement-group')},
  ...details.map(el=>({title:el.querySelector('summary').textContent,el})),
  {title:'Review and save',el:document.querySelector('#history-panel')}];
  wizardStep=Math.max(0,Math.min(wizardStep,steps.length-1));
@@ -63,7 +74,7 @@ function goToWizardStep(next){
  wizardStep=next;
  setupWizard();
  const details=[...document.querySelectorAll('#extras details')];
- const targets=[document.querySelector('#form .cols'),document.querySelector('#extras > .cols'),...details,document.querySelector('#history-panel')];
+ const targets=[document.querySelector('#form .cols'),document.querySelector('#extras > .measurement-group'),...details,document.querySelector('#history-panel')];
  targets[wizardStep]?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 document.querySelector('#wizard-prev').onclick=()=>goToWizardStep(Math.max(0,wizardStep-1));
