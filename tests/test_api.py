@@ -220,7 +220,12 @@ def test_offline_measurements_endpoint():
     assert all(item['weight_lb']>0 for item in scans)
 
 
-def test_full_journey_and_recent_six_have_distinct_weight_changes():
+def test_full_journey_and_recent_six_have_distinct_weight_changes(monkeypatch):
+    import inbody_layout
+    config = inbody_layout.report_config()
+    monkeypatch.setattr(inbody_layout, 'report_config', lambda: {
+        **config, 'history_mode': 'recent', 'history_recent_count': 6
+    })
     import io
     from pypdf import PdfReader
     # A dedicated fictional fixture: never depend on editable user measurements.
