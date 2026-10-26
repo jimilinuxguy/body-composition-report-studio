@@ -172,14 +172,18 @@ def build_inbody_pdf(scan, history=None):
     ry=section(rx,ry,RIGHT_W,"Body Fat / Lean Control")
     for label,v in [("Weight Control",scan.weight_control_lb),("Fat Control",scan.fat_control_lb),("Muscle Control",scan.muscle_control_lb)]:
         ry=small_row(rx,ry,label,v)
-    text(rx+2,ry+2,"0.0 = target achieved; not historical change",6.2,color=GRAY)
+    if any(v is not None for v in (scan.weight_control_lb,scan.fat_control_lb,scan.muscle_control_lb)):
+        text(rx+2,ry+2,"0.0 = target achieved; not historical change",6.2,color=GRAY)
     ry-=10
     ry=section(rx,ry,RIGHT_W,"Segmental Fat Analysis")
     for label,key in [("Right Arm","right_arm"),("Left Arm","left_arm"),("Trunk","trunk"),("Right Leg","right_leg"),("Left Leg","left_leg")]:
         v=getattr(scan,key+"_fat_lb",None);pct=getattr(scan,key+"_fat_pct",None)
         text(rx+2,ry,label,7.3)
         text(rx+80,ry,value(v,2)+" lb" if v is not None else "—",7.1)
-        bar(rx+127,ry+1,38,pct,0,150)
+        if pct is not None:
+            bar(rx+127,ry+1,38,pct,0,150)
+        else:
+            text(rx+131,ry,"N/A",6.2,color=GRAY)
         ry-=20
     ry-=6
     ry=section(rx,ry,RIGHT_W,"Visceral Fat Level")
@@ -235,6 +239,6 @@ def build_inbody_pdf(scan, history=None):
     line(MARGIN,43,W-MARGIN,43,RED,1)
     if is_synthetic or config["show_generated_footer_notice"]:
         text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
-    text(MARGIN,19,"For personal tracking; not a diagnostic or device-verified measurement.",6.8,color=GRAY)
+    text(MARGIN,19,("Fictional software demonstration - not for medical use." if is_synthetic else "For personal tracking; not a diagnostic or device-verified measurement."),6.8,color=GRAY)
     c.save()
     return out.getvalue()
