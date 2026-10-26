@@ -42,6 +42,16 @@ for a, b in zip(history_bounds, history_bounds[1:]):
         f"History rows not uniformly aligned: {a} vs {b}"
     )
 assert len(history_bounds) == 4
+# Each date and its weight value must have matching horizontal text centers.
+# This catches a visual drift that string-presence tests cannot detect.
+date_rects = [r for r in page.search_for("06-01") if r.y0 > history_area.y1]
+value_rects = [r for r in page.search_for("294.1") if r.y0 > history_area.y1]
+if date_rects and value_rects:
+    date_center = (date_rects[0].x0 + date_rects[0].x1) / 2
+    value_center = (value_rects[0].x0 + value_rects[0].x1) / 2
+    assert abs(date_center - value_center) < 1.5, (
+        f"Date/value columns shifted: {date_center} vs {value_center}"
+    )
 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
 pix.save(output / "inbody-synthetic-reference.png")
 print(f"PASS: one-page PDF, {len(words)} words, no off-page text. Artifacts in {output}")
