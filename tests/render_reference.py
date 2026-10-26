@@ -1,12 +1,14 @@
 """Render the real offline dataset and validate one-page PDF geometry."""
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 import fitz
 from app import Scan
 from inbody_layout import build_inbody_pdf
-
-ROOT = Path(__file__).resolve().parents[1]
 entries = json.loads((ROOT / "data" / "measurements.json").read_text())["entries"]
 scans = [Scan.model_validate(e) for e in entries]
 assert len(scans) >= 6
