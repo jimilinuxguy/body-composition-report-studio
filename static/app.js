@@ -66,7 +66,7 @@ const historyKey='bodycomp.history.v2';
 let entries=[];
 try{entries=JSON.parse(localStorage.getItem(historyKey)||'[]');if(!Array.isArray(entries))entries=[]}catch(_){entries=[]}
 
-function persist(){localStorage.setItem(historyKey,JSON.stringify(entries));drawHistory()}
+function persist(){localStorage.setItem(historyKey,JSON.stringify(entries));drawHistory();schedulePrintablePreview()}
 function fillScan(d){form.querySelector(`[name=report_type][value=${d.report_type}]`).checked=true;renderInputs();for(const [k,v] of Object.entries(d)){if(k==='report_type')continue;if(k==='field_sources'){Object.entries(v||{}).forEach(([field,source])=>{const sel=form.elements.namedItem('provenance__'+field);if(sel)sel.value=source});continue}const el=form.elements.namedItem(k);if(el&&'value' in el)el.value=v??''}update();window.scrollTo({top:0,behavior:'smooth'})}
 function addEntry(){const d=data();if(!form.reportValidity())return;const err=document.querySelector('#error');err.textContent='';if(entries.length&&entries[0].name.trim().toLowerCase()!==d.name.trim().toLowerCase()){err.textContent='History supports one person at a time. Export or clear the existing history first.';return}const idx=entries.findIndex(e=>e.scan_date===d.scan_date);if(idx>=0)entries[idx]=d;else entries.push(d);entries.sort((a,b)=>a.scan_date.localeCompare(b.scan_date));persist()}
 document.querySelector('#save-entry').onclick=addEntry;
