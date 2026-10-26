@@ -74,7 +74,7 @@ def test_reference_layout_pdf_has_all_required_sections(monkeypatch):
         "Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analysis",
         "Segmental Lean Analysis", "ECW / TBW Analysis", "Body Composition History",
         "Segmental Fat Analysis", "Visceral Fat Level", "Research Parameters",
-        "Results Interpretation", "Impedance (ohms)"
+        "Transformation Overview"
     ):
         assert heading in text, f"Missing section: {heading}"
     assert "For personal tracking; not a diagnostic or device-verified measurement." in text
@@ -145,13 +145,16 @@ def test_history_configuration_validation(monkeypatch):
         inbody_layout.report_config()
 
 
-def test_reference_pdf_missing_device_values_are_not_fabricated(monkeypatch):
-    _enable_optional_disclaimers(monkeypatch)
+def test_full_width_history_replaces_right_hand_sections():
     import io
     from pypdf import PdfReader
-    response = client.post("/api/inbody/sheet", json={"scan": VALID_SCAN, "history": []})
-    text = PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
-    assert "No device-only values are inferred." in text
+    response=client.post("/api/inbody/sheet",json={"scan":VALID_SCAN,"history":[]})
+    assert response.status_code==200,response.text
+    text=PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
+    assert "Body Composition History" in text
+    assert "Results Interpretation" not in text
+    assert "Impedance (ohms)" not in text
+
 
 def test_inbody_renderer_imports_and_builds_pdf_directly():
     from inbody_layout import build_inbody_pdf
@@ -290,7 +293,7 @@ def test_legacy_config_defaults_for_new_optional_disclaimers(monkeypatch):
     pdf = inbody_layout.build_inbody_pdf(Scan.model_validate(VALID_SCAN))
     text = PdfReader(io.BytesIO(pdf)).pages[0].extract_text()
     assert 'For personal tracking; not a diagnostic or device-verified measurement.' in text
-    assert 'No device-only values are inferred.' in text
+    assert 'Results Interpretation' not in text
 
 
 def _enable_optional_disclaimers(monkeypatch):
