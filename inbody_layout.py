@@ -20,7 +20,7 @@ RIGHT_W=185
 
 def report_config():
     path=Path(__file__).parent/"data"/"report_config.json"
-    defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True,"show_tracking_footer":True,"show_segmental_disclaimer":True,"show_device_values_disclaimer":True}
+    defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True,"show_tracking_footer":True,"show_calculated_values_note":True,"show_segmental_disclaimer":True,"show_device_values_disclaimer":True}
     if not path.exists():
         return defaults
     config=json.loads(path.read_text(encoding="utf-8"))
@@ -121,11 +121,12 @@ def build_inbody_pdf(scan, history=None):
         ("Total Body Water",scan.total_body_water_lb,"lb"),
         ("Protein",scan.protein_lb,"lb"),
         ("Minerals",scan.minerals_lb,"lb"),
-        ("Lean Body Mass",lean,"lb*"),
-        ("Body Fat Mass",fat,"lb*"),
+        ("Lean Body Mass",lean,"lb*" if config.get("show_calculated_values_note",True) else "lb"),
+        ("Body Fat Mass",fat,"lb*" if config.get("show_calculated_values_note",True) else "lb"),
         ("Weight",scan.weight_lb,"lb")]:
         y=row(x,y,label,v,u)
-    text(x+3,y+3,"* Calculated from entered weight and body fat %",6.2,color=GRAY)
+    if config.get("show_calculated_values_note",True):
+        text(x+3,y+3,"* Calculated from entered weight and body fat %",6.2,color=GRAY)
     y-=14
     y=section(x,y,LEFT,"Muscle-Fat Analysis")
     y=metric(x,y,"Weight",scan.weight_lb,"lb",75,350)
