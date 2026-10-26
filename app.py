@@ -351,3 +351,22 @@ async def history_import(file: UploadFile=File(...)):
         HistoryRequest(scans=scans)
         return {'scans':[s.model_dump(mode='json') for s in sorted(scans,key=lambda x:x.scan_date)]}
     except Exception as exc:raise HTTPException(422,detail=str(exc))
+
+# Offline-first, read-only source of truth. Edit data/measurements.json in
+# VS Code before starting the server; the browser never writes to this file.
+@app.get('/api/local/measurements')
+def local_measurements():
+    path=ROOT/'data'/'measurements.json'
+    if not path.is_file():
+        raise HTTPException(404,detail='Create data/measurements.json to load offline measurements.')
+    try:
+        document=json.loads(path.read_text(encoding='utf-8'))
+        if document.get('schema_version')!=1 or not isinstance(document.get('entries'),list):
+            raise ValueError('Expected schema_version 1 and an entries array')
+        if not 1<=len(document['entries'])<=250:
+            raise ValueError('Expected 1 to 250 measurements')
+        scans=[Scan.model_validate(row) for row in document['entries']]
+        HistoryRequest(scans=scans,report_type='inbody')
+        return {'schema_version':1,'entries':[scan.model_dump(mode='json') for scan in sorted(scans,key=lambda scan:scan.scan_date)]}
+    except (ValueError,TypeError,KeyError) as exc:
+        raise HTTPException(422,detail=f'Invalid data/measurements.json: {exc}')
