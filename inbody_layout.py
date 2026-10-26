@@ -33,7 +33,9 @@ def report_config():
 def build_inbody_pdf(scan, history=None):
     """Draw the same printable sheet used by the browser preview."""
     full_history=sorted(history or [scan],key=lambda x:x.scan_date)
-    history=full_history[-6:]\n    # The six most recent scans drive the charts and recent-period deltas;\n    # the complete record remains available for lifetime comparisons.
+    history=full_history[-6:]
+    # The six most recent scans drive the charts and recent-period deltas;
+    # the complete record remains available for lifetime comparisons.
     is_synthetic=any("synthetic" in str(getattr(h,"notes","")).lower() or "synthetic" in str(getattr(h,"device_model","")).lower() for h in history)
     config=report_config()
     out=io.BytesIO()
@@ -253,7 +255,8 @@ def build_inbody_pdf(scan, history=None):
         original=full_history[0]
         ry-=18
         ry=section(rx,ry,RIGHT_W,"Transformation Overview")
-        text(rx+2,ry,"Lifetime: "+str(original.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)\n        text(rx+2,ry-10,"Recent: "+str(first.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
+        text(rx+2,ry,"Lifetime: "+str(original.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
+        text(rx+2,ry-10,"Recent: "+str(first.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
         ry-=18
         def change_row(label,begin,end,unit="",digits=1):
             nonlocal ry
