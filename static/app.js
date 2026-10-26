@@ -1,4 +1,5 @@
 let wizardStep=0, showAll=false;
+let pdfPreviewTimer=null, pdfPreviewUrl=null, pdfPreviewRequest=0;
 const form=document.querySelector('#form');const extras=document.querySelector('#extras');
 const common=[['visceral_fat_area_cm2','Visceral fat area (cm²)']];
 const types={dexa:[['bone_mineral_lb','Bone mineral (lb)'],['android_fat_pct','Android fat (%)'],['gynoid_fat_pct','Gynoid fat (%)'],['trunk_fat_pct','Trunk fat (%)'],['arms_fat_pct','Arms fat (%)'],['legs_fat_pct','Legs fat (%)']],inbody:[['skeletal_muscle_lb','Skeletal muscle (lb)'],['total_body_water_lb','Total body water (lb)'],['left_arm_lean_lb','Left arm lean (lb)'],['right_arm_lean_lb','Right arm lean (lb)'],['trunk_lean_lb','Trunk lean (lb)'],['left_leg_lean_lb','Left leg lean (lb)'],['right_leg_lean_lb','Right leg lean (lb)']]};
@@ -30,9 +31,32 @@ function data(){const d={field_sources:{}};new FormData(form).forEach((v,k)=>{if
 const val=(n,u='')=>n==null?'Not provided':`${Number(n).toFixed(1)}${u}`;
 function rows(id,items){document.getElementById(id).innerHTML=items.map(([label,value,note])=>`<div class="datum"><span>${label}</span><b>${value}</b><em>${note||''}</em></div>`).join('')}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function schedulePrintablePreview(){
+ const kind=reportType();
+ const sheet=document.querySelector('#sheet');
+ const viewer=document.querySelector('#pdf-live-preview');
+ if(!viewer)return;
+ sheet.style.display=kind==='inbody'?'none':'';
+ viewer.style.display=kind==='inbody'?'block':'none';
+ if(kind!=='inbody')return;
+ clearTimeout(pdfPreviewTimer);
+ const serial=++pdfPreviewRequest;
+ pdfPreviewTimer=setTimeout(async()=>{
+  try{
+   const response=await fetch('/api/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data())});
+   if(!response.ok)throw Error('PDF preview unavailable: '+response.status);
+   const blob=await response.blob();
+   if(serial!==pdfPreviewRequest)return;
+   const url=URL.createObjectURL(blob);
+   viewer.src=url+'#toolbar=0&navpanes=0&scrollbar=0';
+   const previous=pdfPreviewUrl;pdfPreviewUrl=url;
+   if(previous)setTimeout(()=>URL.revokeObjectURL(previous),2000);
+  }catch(err){console.warn('Printable preview:',err.message)}
+ },450);
+}
 function update(){const d=data();const fat=d.weight_lb*d.body_fat_pct/100;const ffm=d.weight_lb-fat;const bmi=703*d.weight_lb/d.height_in**2;const rt=reportType();document.querySelector('#kind').textContent=rt.toUpperCase()+'-STYLE | GENERATED REPORT';document.querySelector('#person').textContent=d.name||'Unnamed';document.querySelector('#date').textContent=d.scan_date||'';document.querySelector('#source').textContent='Source: '+d.source;document.querySelector('#specific-title').textContent=rt==='dexa'?'REGIONAL ANALYSIS':'MUSCLE / WATER ANALYSIS';rows('basics',[['Weight',val(d.weight_lb,' lb'),'Entered'],['Body fat',val(d.body_fat_pct,'%'),'Entered'],['Fat mass',val(fat,' lb'),'Calculated'],['Fat-free mass',val(ffm,' lb'),'Calculated'],['BMI',val(bmi),'Calculated']]);rows('specific',types[rt].map(([k,label])=>[label,val(d[k],k.endsWith('pct')?'%':' lb'),d[k]==null?'':'Entered']));rows('additional',[['Visceral fat area',val(d.visceral_fat_area_cm2,' cm²'),d.visceral_fat_area_cm2==null?'':'Entered']]);document.querySelector('#complete-inbody').innerHTML=rt==='inbody'?Object.entries(inbodyGroups).map(([group,fields])=>`<h3>${esc(group.toUpperCase())}</h3>`+fields.map(([k,label])=>`<div class="datum"><span>${esc(label)}</span><b>${val(d[k])}</b><em>${d[k]==null?'':'Entered'}</em></div>`).join('')).join(''):'';const regionNames=[['right_arm','Right arm'],['left_arm','Left arm'],['trunk','Trunk'],['right_leg','Right leg'],['left_leg','Left leg']];
  const regionFields=[['lean_lb','Lean mass (lb)'],['lean_pct','Lean reference (%)'],['fat_lb','Fat mass (lb)'],['fat_pct','Fat / reference (%)'],['ecw_ratio','ECW ratio']];
- document.querySelector('#segmental-preview').innerHTML=rt==='inbody'?'<h3>SEGMENTAL BODY COMPOSITION</h3><div class="segmental-preview-grid">'+regionNames.map(([prefix,title])=>'<section class="segmental-preview-region"><h4>'+title+'</h4>'+regionFields.map(([suffix,label])=>{const key=prefix+'_'+suffix;return '<div class="segmental-preview-row"><span>'+label+'</span><strong>'+val(d[key],suffix==='lean_lb'||suffix==='fat_lb'?' lb':suffix==='lean_pct'||suffix==='fat_pct'?'%':'')+'</strong></div>'}).join('')+'</section>').join('')+'</div>':'';document.querySelector('#sheet').style.setProperty('--accent',rt==='dexa'?'#385c9a':'#006d89');document.querySelectorAll('#sheet h3,.topline').forEach(e=>e.style.background=rt==='dexa'?'#385c9a':'#006d89')}
+ document.querySelector('#segmental-preview').innerHTML=rt==='inbody'?'<h3>SEGMENTAL BODY COMPOSITION</h3><div class="segmental-preview-grid">'+regionNames.map(([prefix,title])=>'<section class="segmental-preview-region"><h4>'+title+'</h4>'+regionFields.map(([suffix,label])=>{const key=prefix+'_'+suffix;return '<div class="segmental-preview-row"><span>'+label+'</span><strong>'+val(d[key],suffix==='lean_lb'||suffix==='fat_lb'?' lb':suffix==='lean_pct'||suffix==='fat_pct'?'%':'')+'</strong></div>'}).join('')+'</section>').join('')+'</div>':'';schedulePrintablePreview();document.querySelector('#sheet').style.setProperty('--accent',rt==='dexa'?'#385c9a':'#006d89');document.querySelectorAll('#sheet h3,.topline').forEach(e=>e.style.background=rt==='dexa'?'#385c9a':'#006d89')}
 async function submit(path,filename){const error=document.querySelector('#error');error.textContent='';if(!form.reportValidity()){error.textContent='Complete the required measurements before generating a report.';return}try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data())});if(!r.ok){const x=await r.json().catch(()=>({detail:r.statusText}));const details=Array.isArray(x.detail)?x.detail.map(e=>`${(e.loc||[]).filter(p=>p!=='body').join('.')||'Input'}: ${e.msg}`).join('; '):typeof x.detail==='string'?x.detail:JSON.stringify(x);throw new Error(`Report generation failed (${r.status}): ${details}`)}const blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){error.textContent=e.message}}
 document.querySelector('#download').onclick=()=>submit('/api/pdf',reportType()+'_generated_report.pdf');document.querySelector('#csv').onclick=()=>submit('/api/csv','body_composition.csv');document.querySelector('#import').onchange=async e=>{const file=e.target.files[0];if(!file)return;const f=new FormData();f.append('file',file);try{const r=await fetch('/api/import-csv',{method:'POST',body:f});const d=await r.json();if(!r.ok)throw new Error(JSON.stringify(d.detail));form.querySelector(`[name=report_type][value=${d.report_type}]`).checked=true;renderInputs();Object.entries(d).forEach(([k,v])=>{if(k==='report_type')return;const input=form.elements.namedItem(k);if(input&&v!=null)input.value=v});update()}catch(err){document.querySelector('#error').textContent=err.message}};
 form.querySelectorAll('input[name=report_type]').forEach(x=>x.onchange=()=>{renderInputs();update()});form.addEventListener('input',update);form.addEventListener('change',update);form.querySelector('[name=scan_date]').value=new Date().toLocaleDateString('en-CA');renderInputs();update();
