@@ -74,7 +74,6 @@ def test_reference_layout_pdf_has_all_required_sections(monkeypatch):
         "Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analysis",
         "Segmental Lean Analysis", "ECW / TBW Analysis", "Body Composition History",
         "Segmental Fat Analysis", "Visceral Fat Level", "Research Parameters",
-        "Transformation Overview"
     ):
         assert heading in text, f"Missing section: {heading}"
     assert "For personal tracking; not a diagnostic or device-verified measurement." in text
@@ -82,11 +81,21 @@ def test_reference_layout_pdf_has_all_required_sections(monkeypatch):
     assert "Left Leg" in text
 
 
+def test_transformation_overview_requires_multiple_scans():
+    import io
+    from pypdf import PdfReader
+    response=client.post("/api/inbody/sheet", json={"scan": VALID_SCAN, "history": []})
+    assert response.status_code==200,response.text
+    pdf_text=PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
+    assert "Transformation Overview" not in pdf_text
+
+
 def test_reference_pdf_uses_six_date_history(monkeypatch):
     import inbody_layout
     original_config=inbody_layout.report_config()
     monkeypatch.setattr(inbody_layout, "report_config", lambda: {
-        **original_config, "history_mode": "recent", "history_recent_count": 6
+        **original_config, "history_mode": "recent", "history_recent_count": 6,
+        "history_date_format": "month_year"
     })
     import io
     from datetime import date, timedelta
@@ -112,7 +121,7 @@ def test_full_history_chart_includes_first_and_last_and_keeps_recent_delta(monke
     import inbody_layout
     config=inbody_layout.report_config()
     monkeypatch.setattr(inbody_layout, "report_config", lambda: {
-        **config, "history_mode": "full"
+        **config, "history_mode": "full", "history_date_format": "month_year"
     })
     scans=[]
     for i in range(15):
@@ -177,7 +186,12 @@ def test_inbody_pdf_preserves_ecw_ratio_precision():
     assert "0.4" not in extracted.split("ECW / TBW Analysis", 1)[1].split("Body Composition History", 1)[0]
 
 
-def test_six_month_synthetic_report_summary():
+def test_six_month_synthetic_report_summary(monkeypatch):
+    import inbody_layout
+    config = inbody_layout.report_config()
+    monkeypatch.setattr(inbody_layout, "report_config", lambda: {
+        **config, "history_date_format": "month_year"
+    })
     import io
     from pypdf import PdfReader
     dates = ["2026-06-01", "2026-06-29", "2026-07-31",
@@ -227,7 +241,8 @@ def test_full_journey_and_recent_six_have_distinct_weight_changes(monkeypatch):
     import inbody_layout
     config = inbody_layout.report_config()
     monkeypatch.setattr(inbody_layout, 'report_config', lambda: {
-        **config, 'history_mode': 'recent', 'history_recent_count': 6
+        **config, 'history_mode': 'recent', 'history_recent_count': 6,
+        'history_date_format': 'month_year'
     })
     import io
     from pypdf import PdfReader
