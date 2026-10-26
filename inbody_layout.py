@@ -204,10 +204,18 @@ def build_inbody_pdf(scan, history=None):
     # Right side
     rx=RIGHT_X;ry=H-115
     ry=section(rx,ry,RIGHT_W,"Body Fat / Lean Control")
-    for label,v in [("Weight Control",scan.weight_control_lb),("Fat Control",scan.fat_control_lb),("Muscle Control",scan.muscle_control_lb)]:
+    # Derive controls only from explicit targets; do not invent goals.
+    weight_control=scan.weight_control_lb
+    if weight_control is None and scan.target_weight_lb is not None:
+        weight_control=scan.target_weight_lb-scan.weight_lb
+    muscle_control=scan.muscle_control_lb
+    fat_control=scan.fat_control_lb
+    if fat_control is None and weight_control is not None and muscle_control is not None:
+        fat_control=weight_control-muscle_control
+    for label,v in [("Weight Control",weight_control),("Fat Control",fat_control),("Muscle Control",muscle_control)]:
         ry=small_row(rx,ry,label,v)
-    if any(v is not None for v in (scan.weight_control_lb,scan.fat_control_lb,scan.muscle_control_lb)):
-        text(rx+2,ry+2,"0.0 = target achieved; not historical change",6.2,color=GRAY)
+    if any(v is not None for v in (weight_control,fat_control,muscle_control)):
+        text(rx+2,ry+2,"User targets; + gain / - loss (lb)",6.2,color=GRAY)
     ry-=10
     ry=section(rx,ry,RIGHT_W,"Segmental Fat Analysis")
     for label,key in [("Right Arm","right_arm"),("Left Arm","left_arm"),("Trunk","trunk"),("Right Leg","right_leg"),("Left Leg","left_leg")]:
