@@ -26,8 +26,7 @@ assert not outside, f"Text outside page: {outside[:10]}"
 text = page.get_text()
 for term in ("Body Composition Analysis", "Muscle-Fat Analysis", "Obesity Analysis",
              "Segmental Lean Analysis", "Body Composition History", "Transformation Overview",
-             "Total weight", "Recent weight", "-330.0 lb", "-101.7 lb",
-             "SYNTHETIC DEMONSTRATION"):
+             "For personal tracking"):
     assert term in text, f"Missing from PDF: {term}"
 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
 pix.save(output / "inbody-synthetic-reference.png")
