@@ -1,5 +1,7 @@
 """Reference-inspired InBody-style report. Generated, not device-issued."""
 import io
+import json
+from pathlib import Path
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -15,10 +17,23 @@ LEFT=352
 RIGHT_X=395
 RIGHT_W=185
 
+def report_config():
+    path=Path(__file__).parent/"data"/"report_config.json"
+    defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True}
+    if not path.exists():
+        return defaults
+    config=json.loads(path.read_text(encoding="utf-8"))
+    for key in defaults:
+        if key in config and not isinstance(config[key],bool):
+            raise ValueError(f"{key} must be true or false")
+    return {**defaults,**config}
+
+
 def build_inbody_pdf(scan, history=None):
     """Draw the same printable sheet used by the browser preview."""
     history=sorted(history or [scan],key=lambda x:x.scan_date)[-6:]
     is_synthetic=any("synthetic" in str(getattr(h,"notes","")).lower() or "synthetic" in str(getattr(h,"device_model","")).lower() for h in history)
+    config=report_config()
     out=io.BytesIO()
     c=canvas.Canvas(out,pagesize=A4,pageCompression=0)
     c.setTitle("Generated InBody-style body composition report")
@@ -89,7 +104,8 @@ def build_inbody_pdf(scan, history=None):
     text(386,H-65,"Test date",7,color=GRAY)
     text(386,H-77,str(scan.scan_date),9)
     status=("SYNTHETIC DEMONSTRATION - NOT REAL MEASUREMENTS" if is_synthetic else "GENERATED / NOT DEVICE-VERIFIED - Entered or calculated values")
-    text(MARGIN,H-92,status,7,True,RED)
+    if is_synthetic or config["show_generated_header_notice"]:
+        text(MARGIN,H-92,status,7,True,RED)
     # Left: stacked analytical sections
     x=MARGIN;y=H-115
     y=section(x,y,LEFT,"Body Composition Analysis")
@@ -215,7 +231,8 @@ def build_inbody_pdf(scan, history=None):
         if is_synthetic:
             text(rx+2,ry-1,"All trends are fictional demo data.",6.5,color=RED)
     line(MARGIN,43,W-MARGIN,43,RED,1)
-    text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
+    if is_synthetic or config["show_generated_footer_notice"]:
+        text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
     text(MARGIN,19,"For personal tracking; not a diagnostic or device-verified measurement.",6.8,color=GRAY)
     c.save()
     return out.getvalue()
