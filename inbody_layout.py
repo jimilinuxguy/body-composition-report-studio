@@ -33,7 +33,7 @@ def report_config():
 def build_inbody_pdf(scan, history=None):
     """Draw the same printable sheet used by the browser preview."""
     full_history=sorted(history or [scan],key=lambda x:x.scan_date)
-    history=full_history[-6:]
+    history=full_history[-6:]\n    # The six most recent scans drive the charts and recent-period deltas;\n    # the complete record remains available for lifetime comparisons.
     is_synthetic=any("synthetic" in str(getattr(h,"notes","")).lower() or "synthetic" in str(getattr(h,"device_model","")).lower() for h in history)
     config=report_config()
     out=io.BytesIO()
@@ -139,7 +139,7 @@ def build_inbody_pdf(scan, history=None):
     y=section(x,y,LEFT,"ECW / TBW Analysis")
     y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45,3)
     y-=5
-    y=section(x,y,LEFT,"Body Composition History")
+    y=section(x,y,LEFT,"Body Composition History (Last 6)")
     # A shared date header and four self-contained chart bands.
     # All labels, values and plots for a metric stay within its own band.
     hx=x+112
@@ -253,7 +253,7 @@ def build_inbody_pdf(scan, history=None):
         original=full_history[0]
         ry-=18
         ry=section(rx,ry,RIGHT_W,"Transformation Overview")
-        text(rx+2,ry,"Full history: "+str(original.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
+        text(rx+2,ry,"Lifetime: "+str(original.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)\n        text(rx+2,ry-10,"Recent: "+str(first.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
         ry-=18
         def change_row(label,begin,end,unit="",digits=1):
             nonlocal ry
@@ -262,7 +262,7 @@ def build_inbody_pdf(scan, history=None):
             text(rx+119,ry,display,8,True)
             line(rx,ry-5,rx+RIGHT_W,ry-5)
             ry-=18
-        change_row("Total weight",original.weight_lb,last.weight_lb," lb")
+        change_row("Lifetime weight",original.weight_lb,last.weight_lb," lb")
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
