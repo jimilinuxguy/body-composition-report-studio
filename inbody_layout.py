@@ -310,8 +310,8 @@ def build_inbody_pdf(scan, history=None):
     # Weight gets a substantially taller plot; secondary metrics stay compact.
     # The entire chart remains within the existing one-page footer boundary.
     available=max(0,y-57)
-    secondary_h=23
-    weight_h=min(49,max(28,available-3*secondary_h))
+    secondary_h=24
+    weight_h=min(53,max(28,available-3*secondary_h))
     for row_index,(label,fn,decimals) in enumerate(chart_rows):
         band_h=weight_h if row_index==0 else secondary_h
         top=y
@@ -332,7 +332,8 @@ def build_inbody_pdf(scan, history=None):
         numeric=[v for v in values if v is not None]
         low=min(numeric) if numeric else 0
         high=max(numeric) if numeric else 1
-        pad=max((high-low)*.25,.001 if label=="ECW/TBW" else .5)
+        # Small symmetric padding makes the full observed change visible.
+        pad=max((high-low)*.04,.0002 if label=="ECW/TBW" else .2)
         low-=pad
         high+=pad
         span=max(high-low,.001)
@@ -341,18 +342,19 @@ def build_inbody_pdf(scan, history=None):
             if v is None:
                 continue
             px=positions[i]
-            # The previous band_h-25 left only 3pt of vertical travel in a
-            # 28pt band, making even a 330 lb change look almost flat.
-            # Use the lower plotting region while keeping labels above it.
+            # Reserve a dedicated annotation strip above each trend.
+            # The 10-point standard history fits one label lane in the
+            # compact rows; dense histories retain two staggered lanes.
+            dense=len(history)>10
             plot_bottom=bottom+4 if row_index==0 else bottom+3
-            plot_top=top-19 if row_index==0 else top-13
+            plot_top=top-(22 if row_index==0 else (18 if dense else 12))
             py=plot_bottom+max(1,plot_top-plot_bottom)*(v-low)/span
             points.append((px,py))
             # Numeric annotations for every result, staggered in two lanes.
             val=value(v,decimals)
             fs=6.2 if len(history)>10 else 6.8
             vx=date_positions[i][1]
-            lane=i%2
+            lane=i%2 if row_index==0 or len(history)>10 else 0
             label_y=top-8-lane*8
             text(vx-pdfmetrics.stringWidth(val,"Helvetica",fs)/2,label_y,val,fs,
                  i==len(values)-1,RED if i==len(values)-1 else INK)
