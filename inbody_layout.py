@@ -27,7 +27,10 @@ def report_config():
     for key in defaults:
         if key in config and not isinstance(config[key],bool):
             raise ValueError(f"{key} must be true or false")
-    return {**defaults,**config}
+    branding = config.get("report_branding", "inbody")
+    if branding not in ("inbody", "generic"):
+        raise ValueError("report_branding must be inbody or generic")
+    return {**defaults, **config, "report_branding": branding}
 
 
 def build_inbody_pdf(scan, history=None):
@@ -40,7 +43,8 @@ def build_inbody_pdf(scan, history=None):
     config=report_config()
     out=io.BytesIO()
     c=canvas.Canvas(out,pagesize=A4,pageCompression=0)
-    c.setTitle("Body Composition | Personal Progress Report")
+    branding = config.get("report_branding", "inbody")
+    c.setTitle("InBody Style Body Composition Report" if branding == "inbody" else "Body Composition | Personal Progress Report")
     def text(x,y,s,size=8,bold=False,color=INK):
         c.setFont("Helvetica-Bold" if bold else "Helvetica",size)
         c.setFillColor(color)
@@ -94,8 +98,12 @@ def build_inbody_pdf(scan, history=None):
             y-=19
         return y-6
     # Header and identity
-    text(MARGIN,H-39,"BODY COMPOSITION",20,True,RED)
-    text(MARGIN+231,H-36,"PERSONAL PROGRESS REPORT",8,True,GRAY)
+    if branding == "inbody":
+        text(MARGIN,H-39,"InBody",27,True,RED)
+        text(MARGIN+103,H-36,"STYLE BODY COMPOSITION REPORT",9,True,GRAY)
+    else:
+        text(MARGIN,H-39,"BODY COMPOSITION",20,True,RED)
+        text(MARGIN+231,H-36,"PERSONAL PROGRESS REPORT",8,True,GRAY)
     line(MARGIN,H-49,W-MARGIN,H-49,RED,1.7)
     text(MARGIN,H-65,"Name / ID",7,color=GRAY)
     text(MARGIN,H-77,scan.name[:30],9,True)
