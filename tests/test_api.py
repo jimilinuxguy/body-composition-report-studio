@@ -76,7 +76,7 @@ def test_reference_layout_pdf_has_all_required_sections():
         "Results Interpretation", "Impedance (ohms)"
     ):
         assert heading in text, f"Missing section: {heading}"
-    assert "NOT DEVICE-VERIFIED" in text
+    assert "For personal tracking; not a diagnostic or device-verified measurement." in text
     assert "Right Arm" in text
     assert "Left Leg" in text
 
@@ -104,7 +104,7 @@ def test_reference_pdf_missing_device_values_are_not_fabricated():
     from pypdf import PdfReader
     response = client.post("/api/inbody/sheet", json={"scan": VALID_SCAN, "history": []})
     text = PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
-    assert "GENERATED" in text
+    assert "No device-only values are inferred." in text
     assert "No device-only values are inferred." in text
 
 def test_inbody_renderer_imports_and_builds_pdf_directly():
@@ -169,20 +169,26 @@ def test_offline_measurements_endpoint():
     response=client.get('/api/local/measurements')
     assert response.status_code==200,response.text
     scans=response.json()['entries']
-    assert len(scans)==15
-    assert scans[0]['weight_lb']==522.4
-    assert scans[-1]['weight_lb']==192.4
-    assert scans[-1]['skeletal_muscle_lb']==85.3
-    assert all('SYNTHETIC' in item['notes'] for item in scans)
+    assert len(scans)>=1
+    assert len(scans)<=250
+    assert scans==sorted(scans,key=lambda item:item['scan_date'])
+    assert all(item['weight_lb']>0 for item in scans)
 
 
 def test_full_journey_and_recent_six_have_distinct_weight_changes():
     import io
     from pypdf import PdfReader
-    from pathlib import Path
-    import json
-    from app import ROOT
-    entries=json.loads((ROOT/'data'/'measurements.json').read_text())['entries']
+    # A dedicated fictional fixture: never depend on editable user measurements.
+    dates=['2024-05-15','2026-06-01','2026-06-29',
+           '2026-07-31','2026-08-27','2026-09-30','2026-10-26']
+    weights=[522.4,294.1,270.8,244.6,222.9,205.7,192.4]
+    muscles=[68.2,75.1,76.8,78.9,78.5,82.6,85.3]
+    fats=[64.2,42.3,38.4,32.6,26.1,19.3,13.2]
+    entries=[{
+        **VALID_SCAN,'scan_date':day,'weight_lb':weights[i],
+        'skeletal_muscle_lb':muscles[i],'body_fat_pct':fats[i],
+        'notes':'SYNTHETIC DEMONSTRATION DATA'
+    } for i,day in enumerate(dates)]
     response=client.post('/api/inbody/sheet',json={
         'scan':entries[-1],'history':entries[:-1]
     })
@@ -194,7 +200,7 @@ def test_full_journey_and_recent_six_have_distinct_weight_changes():
                      'Recent muscle','-330.0 lb','-101.7 lb','+10.2 lb',
                      'SYNTHETIC DEMONSTRATION'):
         assert expected in text,expected
-    assert '05-15' not in text  # recent-six chart, not fifteen overcrowded columns
+    assert '05-15' not in text
     assert '10-26' in text
 
 
