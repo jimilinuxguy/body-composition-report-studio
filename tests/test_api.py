@@ -100,9 +100,9 @@ def test_reference_pdf_uses_six_date_history(monkeypatch):
     response = client.post("/api/inbody/sheet", json={"scan": scans[-1], "history": scans[:-1]})
     assert response.status_code == 200, response.text
     text = PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
-    assert "10-11" in text
-    assert "10-16" in text
-    assert "10-10" not in text
+    assert "Oct 2026" in text
+    assert "176.0" in text
+    assert "170.0" not in text
 
 
 def test_full_history_chart_includes_first_and_last_and_keeps_recent_delta(monkeypatch):
@@ -122,8 +122,8 @@ def test_full_history_chart_includes_first_and_last_and_keeps_recent_delta(monke
     response=client.post("/api/inbody/sheet", json={"scan": scans[-1], "history": scans[:-1]})
     assert response.status_code == 200, response.text
     text=PdfReader(io.BytesIO(response.content)).pages[0].extract_text()
-    assert "24-05" in text
-    assert str(scans[-1]["scan_date"])[2:7] in text
+    assert "May 2024" in text
+    assert "Sep 2026" in text
     assert "522.4" in text
     assert "242.4" in text
     assert "-100.0 lb" in text
@@ -206,8 +206,8 @@ def test_six_month_synthetic_report_summary():
     for expected in ("Transformation Overview", "-100.0 lb", "-28.9 pp",
                      "+10.2 lb", "0.379"):
         assert expected in text, expected
-    for day in dates:
-        assert day[5:] in text
+    assert "Jun 2026" in text
+    assert "Oct 2026" in text
     assert "No device-only values are inferred." not in text
 
 def test_offline_measurements_endpoint():
@@ -249,8 +249,8 @@ def test_full_journey_and_recent_six_have_distinct_weight_changes(monkeypatch):
     for expected in ('Total weight','Recent weight','Recent body fat',
                      'Recent muscle','-330.0 lb','-101.7 lb','+10.2 lb'):
         assert expected in text,expected
-    assert '05-15' not in text
-    assert '10-26' in text
+    assert 'May 2024' not in text
+    assert 'Oct 2026' in text
 
 
 def test_generated_notices_configurable_but_synthetic_disclosure_remains(monkeypatch):
