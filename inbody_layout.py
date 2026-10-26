@@ -140,7 +140,6 @@ def build_inbody_pdf(scan, history=None):
     y=metric(x,y,"Weight",scan.weight_lb,"lb",75,350)
     y=metric(x,y,"Skeletal Muscle Mass",scan.skeletal_muscle_lb,"lb",30,150)
     y=metric(x,y,"Body Fat Mass",fat,"lb",0,140)
-    text(x+3,y+4,"Bars show position on display scales; not clinical target ranges.",6,color=GRAY)
     y-=6
     y=section(x,y,LEFT,"Obesity Analysis")
     bmi=703*scan.weight_lb/scan.height_in**2
@@ -148,7 +147,6 @@ def build_inbody_pdf(scan, history=None):
     y=metric(x,y,"Percent Body Fat",scan.body_fat_pct,"%",0,50)
     y-=8
     y=regional(x,y,"Segmental Lean Analysis","lean")
-    text(x+3,y+5,"Segment percentages: supplied reference ratios (100% = reference).",6,color=GRAY)
     y=section(x,y,LEFT,"ECW / TBW Analysis")
     y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45,3)
     y-=5
@@ -160,7 +158,7 @@ def build_inbody_pdf(scan, history=None):
     for i,h in enumerate(history):
         date_label=str(h.scan_date)[5:]
         center_x=hx+11+i*cw
-        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",6.8)/2,y,date_label,6.8,color=GRAY)
+        text(center_x-pdfmetrics.stringWidth(date_label,"Helvetica",7.2)/2,y,date_label,7.2,color=GRAY)
     y-=12
     chart_rows=[
         ("Weight (lb)",lambda z:z.weight_lb,1),
@@ -201,7 +199,10 @@ def build_inbody_pdf(scan, history=None):
             px=hx+11+i*cw
             if v is not None:
                 value_label=value(v,decimals)
-                text(px-pdfmetrics.stringWidth(value_label,"Helvetica",6.8)/2,top-10,value_label,6.8)
+                is_latest=i==len(values)-1
+                font="Helvetica-Bold" if is_latest else "Helvetica"
+                font_size=7.1 if is_latest else 6.8
+                text(px-pdfmetrics.stringWidth(value_label,font,font_size)/2,top-10,value_label,font_size,is_latest,RED if is_latest else INK)
                 py=bottom+5+17*(v-low)/span
                 points.append((px,py))
         for p,q in zip(points,points[1:]):
