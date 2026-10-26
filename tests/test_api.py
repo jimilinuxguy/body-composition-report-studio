@@ -196,3 +196,24 @@ def test_full_journey_and_recent_six_have_distinct_weight_changes():
         assert expected in text,expected
     assert '05-15' not in text  # recent-six chart, not fifteen overcrowded columns
     assert '10-26' in text
+
+
+def test_generated_notices_configurable_but_synthetic_labels_remain(monkeypatch):
+    import io
+    from pypdf import PdfReader
+    import inbody_layout
+    monkeypatch.setattr(inbody_layout, "report_config", lambda: {
+        "show_generated_header_notice": False,
+        "show_generated_footer_notice": False
+    })
+    from app import Scan
+    ordinary=Scan.model_validate(VALID_SCAN)
+    text=PdfReader(io.BytesIO(inbody_layout.build_inbody_pdf(ordinary))).pages[0].extract_text()
+    assert "GENERATED / NOT DEVICE-VERIFIED" not in text
+    assert "GENERATED REPORT - NOT AN ORIGINAL" not in text
+    synthetic=Scan.model_validate({
+        **VALID_SCAN,"notes":"SYNTHETIC DEMONSTRATION DATA"
+    })
+    demo=PdfReader(io.BytesIO(inbody_layout.build_inbody_pdf(synthetic))).pages[0].extract_text()
+    assert "SYNTHETIC DEMONSTRATION" in demo
+    assert "SYNTHETIC DEMO - NOT REAL SCAN RESULTS" in demo
