@@ -20,7 +20,7 @@ RIGHT_W=185
 
 def report_config():
     path=Path(__file__).parent/"data"/"report_config.json"
-    defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True,"show_tracking_footer":True,"show_calculated_values_note":True,"show_segmental_disclaimer":True,"show_device_values_disclaimer":True}
+    defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True,"show_tracking_footer":True,"show_calculated_values_note":True,"show_maintenance_control_baseline":True,"show_segmental_disclaimer":True,"show_device_values_disclaimer":True}
     if not path.exists():
         return defaults
     config=json.loads(path.read_text(encoding="utf-8"))
@@ -204,17 +204,26 @@ def build_inbody_pdf(scan, history=None):
     # Right side
     rx=RIGHT_X;ry=H-115
     ry=section(rx,ry,RIGHT_W,"Body Fat / Lean Control")
-    # Derive controls only from explicit targets; do not invent goals.
+    # Use a clearly labelled zero-change maintenance baseline when no
+    # control targets were supplied. This is not a recommended target.
+    explicit_goal=any(v is not None for v in (
+        scan.target_weight_lb,scan.weight_control_lb,
+        scan.fat_control_lb,scan.muscle_control_lb))
+    maintenance=not explicit_goal and config.get("show_maintenance_control_baseline",True)
     weight_control=scan.weight_control_lb
     if weight_control is None and scan.target_weight_lb is not None:
         weight_control=scan.target_weight_lb-scan.weight_lb
     muscle_control=scan.muscle_control_lb
     fat_control=scan.fat_control_lb
-    if fat_control is None and weight_control is not None and muscle_control is not None:
+    if maintenance:
+        weight_control=fat_control=muscle_control=0.0
+    elif fat_control is None and weight_control is not None and muscle_control is not None:
         fat_control=weight_control-muscle_control
     for label,v in [("Weight Control",weight_control),("Fat Control",fat_control),("Muscle Control",muscle_control)]:
         ry=small_row(rx,ry,label,v)
-    if any(v is not None for v in (weight_control,fat_control,muscle_control)):
+    if maintenance:
+        text(rx+2,ry+2,"Maintenance baseline; no goal set",6.2,color=GRAY)
+    elif explicit_goal:
         text(rx+2,ry+2,"User targets; + gain / - loss (lb)",6.2,color=GRAY)
     ry-=10
     ry=section(rx,ry,RIGHT_W,"Segmental Fat Analysis")
