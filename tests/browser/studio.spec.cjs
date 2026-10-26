@@ -62,3 +62,34 @@ test('DEXA mode changes the visible measurements and preview', async ({ page }) 
   await expect(page.locator('#kind')).toContainText('DEXA-STYLE');
   await expect(page.locator('#segmental-preview')).toBeEmpty();
 });
+
+test('three monthly saved entries are sent to printable PDF preview and download', async ({ page }) => {
+  const captured = [];
+  page.on('request', request => {
+    if (request.url().includes('/api/inbody/sheet') && request.method() === 'POST') {
+      captured.push(request.postDataJSON());
+    }
+  });
+  await page.addInitScript(() => {
+    const dates = ['2026-08-25','2026-09-25','2026-10-25'];
+    const scans = dates.map((scan_date, i) => ({
+      report_type:'inbody', source:'estimated', name:'Sample Client',
+      scan_date, height_in:71, weight_lb:190-i*10,
+      body_fat_pct:20-i*2, notes:'Synthetic test data',
+      field_sources:{}, skeletal_muscle_lb:90+i
+    }));
+    localStorage.setItem('bodycomp.history.v2',JSON.stringify(scans));
+  });
+  await page.goto('/');
+  await expect(page.locator('#entry-count')).toContainText('3 entries');
+  await expect(page.locator('#pdf-live-preview')).toHaveAttribute('src', /blob:/, {timeout:15000});
+  await expect.poll(() => captured.some(p =>
+    p.history?.length >= 3 &&
+    ['2026-08-25','2026-09-25','2026-10-25'].every(d=>p.history.some(s=>s.scan_date===d))
+  )).toBeTruthy();
+  const downloadPromise=page.waitForEvent('download');
+  await page.locator('#download').click();
+  await downloadPromise;
+  await expect.poll(()=>captured.length>=2).toBeTruthy();
+  expect(captured.at(-1).history.length).toBeGreaterThanOrEqual(3);
+});
