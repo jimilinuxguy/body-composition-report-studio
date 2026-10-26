@@ -173,9 +173,9 @@ def build_inbody_pdf(scan, history=None):
         "Body composition includes fat mass",
         "and fat-free mass.",
         "BMI is derived from weight and height.",
-        "Segmental values are shown only",
-        "when supplied by the user.",
-        "No device-only values are inferred.",
+        ("Segmental values are illustrative" if is_synthetic else "Segmental values are shown only"),
+        ("and not device-measured." if is_synthetic else "when supplied by the user."),
+        ("Device-only fields may be unavailable." if is_synthetic else "No device-only values are inferred."),
     ]:
         text(rx+2,ry,msg,7,color=GRAY);ry-=12
     ry-=8
