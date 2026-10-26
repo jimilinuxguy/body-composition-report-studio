@@ -158,7 +158,7 @@ document.querySelector('main').appendChild(historyWorkspace);
 setupWizard();
 
 async function loadOfflineMeasurements(){
- const status=document.querySelector('#error');
+ const status=document.querySelector('#offline-status');
  try{
   const response=await fetch('/api/local/measurements',{cache:'no-store'});
   if(!response.ok){
