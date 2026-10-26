@@ -224,11 +224,11 @@ def build_inbody_pdf(scan, history=None):
     if len(recent_history)>1:
         first,last=recent_history[0],recent_history[-1]
         original=full_history[0]
-        ry-=18
+        ry-=4
         ry=section(rx,ry,RIGHT_W,"Transformation Overview")
         text(rx+2,ry,"Lifetime: "+str(original.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
         text(rx+2,ry-10,"Recent: "+str(first.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
-        ry-=18
+        ry-=14
         def change_row(label,begin,end,unit="",digits=1):
             nonlocal ry
             display="N/A" if begin is None or end is None else f"{end-begin:+.{digits}f}{unit}"
@@ -237,20 +237,19 @@ def build_inbody_pdf(scan, history=None):
             c.setFillColor(RED if label=="Total weight" else INK)
             c.drawRightString(rx+RIGHT_W-3,ry,display)
             line(rx,ry-5,rx+RIGHT_W,ry-5)
-            ry-=18
+            ry-=13
         # Make the lifetime result the visual anchor of the summary.
         if original.weight_lb is not None and last.weight_lb is not None:
             lifetime_delta=last.weight_lb-original.weight_lb
             c.setFillColor(colors.HexColor("#f5f0f1"))
-            c.roundRect(rx,ry-42,RIGHT_W,35,4,stroke=0,fill=1)
-            text(rx+8,ry-18,"Total weight",7,True,GRAY)
+            c.roundRect(rx,ry-35,RIGHT_W,31,4,stroke=0,fill=1)
+            text(rx+8,ry-15,"Total weight",7,True,GRAY)
             c.setFont("Helvetica-Bold",15)
             c.setFillColor(RED)
-            c.drawRightString(rx+RIGHT_W-8,ry-34,f"{lifetime_delta:+.1f} lb")
-            ry-=54
+            c.drawRightString(rx+RIGHT_W-8,ry-30,f"{lifetime_delta:+.1f} lb")
+            ry-=40
         else:
             change_row("Total weight",original.weight_lb,last.weight_lb," lb")
-        ry-=3
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
@@ -278,7 +277,7 @@ def build_inbody_pdf(scan, history=None):
     labels=[date_label(d) for d in scan_dates]
     # Allocate labels to non-overlapping lanes instead of silently omitting scans.
     # Full dates and values remain available even when measurements cluster.
-    date_lanes=[float("-inf")]*4
+    date_lanes=[float("-inf")]*3
     date_positions=[]
     for i,label in enumerate(labels):
         width=pdfmetrics.stringWidth(label,"Helvetica",6.3)
@@ -300,15 +299,15 @@ def build_inbody_pdf(scan, history=None):
         date_lanes[lane]=center+width/2
         date_positions.append((lane,center))
         text(center-width/2,y-lane*8,label,6.3,color=GRAY)
-    y-=37
+    y-=29
     chart_rows=[
         ("Weight (lb)",lambda z:z.weight_lb,1),
         ("SMM (lb)",lambda z:z.skeletal_muscle_lb,1),
         ("PBF (%)",lambda z:z.body_fat_pct,1),
         ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
     ]
-    available=max(104,y-57)
-    band_h=min(37,max(26,available/4))
+    available=max(96,y-62)
+    band_h=min(34,max(24,available/4))
     for row_index,(label,fn,decimals) in enumerate(chart_rows):
         top=y
         bottom=top-band_h
