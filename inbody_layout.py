@@ -31,7 +31,8 @@ def report_config():
 
 def build_inbody_pdf(scan, history=None):
     """Draw the same printable sheet used by the browser preview."""
-    history=sorted(history or [scan],key=lambda x:x.scan_date)[-6:]
+    full_history=sorted(history or [scan],key=lambda x:x.scan_date)
+    history=full_history[-6:]
     is_synthetic=any("synthetic" in str(getattr(h,"notes","")).lower() or "synthetic" in str(getattr(h,"device_model","")).lower() for h in history)
     config=report_config()
     out=io.BytesIO()
@@ -210,12 +211,13 @@ def build_inbody_pdf(scan, history=None):
             v=getattr(scan,f"impedance_{freq}khz_{key}_ohm",None)
             text(rx+42+i*28,ry,value(v,0),6.3)
         ry-=15
-    # History change is distinct from target-control values.
+    # Full transformation and recent six-date window are intentionally separate.
     if len(history)>1:
         first,last=history[0],history[-1]
+        original=full_history[0]
         ry-=18
         ry=section(rx,ry,RIGHT_W,"Transformation Overview")
-        text(rx+2,ry,"From "+str(first.scan_date)+" to "+str(last.scan_date),6.7,color=GRAY)
+        text(rx+2,ry,"Full history: "+str(original.scan_date)[:7]+" to "+str(last.scan_date)[:7],6.7,color=GRAY)
         ry-=18
         def change_row(label,begin,end,unit="",digits=1):
             nonlocal ry
@@ -224,12 +226,12 @@ def build_inbody_pdf(scan, history=None):
             text(rx+119,ry,display,8,True)
             line(rx,ry-5,rx+RIGHT_W,ry-5)
             ry-=18
-        change_row("Weight",first.weight_lb,last.weight_lb," lb")
-        change_row("Body fat",first.body_fat_pct,last.body_fat_pct," pp")
-        change_row("Skeletal muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
-        change_row("Visceral level",first.visceral_fat_level,last.visceral_fat_level,"")
+        change_row("Total weight",original.weight_lb,last.weight_lb," lb")
+        change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
+        change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
+        change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
         if is_synthetic:
-            text(rx+2,ry-1,"All trends are fictional demo data.",6.5,color=RED)
+            text(rx+2,ry-1,"Fictional demo trends; not measured.",6.5,color=RED)
     line(MARGIN,43,W-MARGIN,43,RED,1)
     if is_synthetic or config["show_generated_footer_notice"]:
         text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
