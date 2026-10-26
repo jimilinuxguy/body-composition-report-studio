@@ -255,7 +255,8 @@ def build_inbody_pdf(scan, history=None):
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
     # Full-width history replaces the removed interpretation/impedance blocks.
     # Keep all dated measurements visible, including densely spaced recent scans.
-    y=min(y,ry)-9
+    # Reclaim unused separation above the history for a taller weight trend.
+    y=min(y,ry)+2
     chart_width=W-2*MARGIN
     y=section(MARGIN,y,chart_width,"Body Composition History")
     plot_left=MARGIN+79
@@ -299,16 +300,20 @@ def build_inbody_pdf(scan, history=None):
         date_lanes[lane]=center+width/2
         date_positions.append((lane,center))
         text(center-width/2,y-lane*8,label,6.3,color=GRAY)
-    y-=29
+    y-=24
     chart_rows=[
         ("Weight (lb)",lambda z:z.weight_lb,1),
         ("SMM (lb)",lambda z:z.skeletal_muscle_lb,1),
         ("PBF (%)",lambda z:z.body_fat_pct,1),
         ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
     ]
-    available=max(96,y-62)
-    band_h=min(28,max(23,available/4))
+    # Weight gets a substantially taller plot; secondary metrics stay compact.
+    # The entire chart remains within the existing one-page footer boundary.
+    available=max(0,y-57)
+    secondary_h=23
+    weight_h=min(49,max(28,available-3*secondary_h))
     for row_index,(label,fn,decimals) in enumerate(chart_rows):
+        band_h=weight_h if row_index==0 else secondary_h
         top=y
         bottom=top-band_h
         if row_index%2==0:
@@ -339,8 +344,8 @@ def build_inbody_pdf(scan, history=None):
             # The previous band_h-25 left only 3pt of vertical travel in a
             # 28pt band, making even a 330 lb change look almost flat.
             # Use the lower plotting region while keeping labels above it.
-            plot_bottom=bottom+3
-            plot_top=top-13
+            plot_bottom=bottom+4 if row_index==0 else bottom+3
+            plot_top=top-19 if row_index==0 else top-13
             py=plot_bottom+max(1,plot_top-plot_bottom)*(v-low)/span
             points.append((px,py))
             # Numeric annotations for every result, staggered in two lanes.
