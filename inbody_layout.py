@@ -166,7 +166,7 @@ def build_inbody_pdf(scan, history=None):
         ("PBF (%)",lambda z:z.body_fat_pct,1),
         ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
     ]
-    band_h=45
+    band_h=42
     for row_index,(label,fn,decimals) in enumerate(chart_rows):
         top=y
         bottom=top-band_h
@@ -251,8 +251,8 @@ def build_inbody_pdf(scan, history=None):
     ry=section(rx,ry,RIGHT_W,"Visceral Fat Level")
     ry=small_row(rx,ry,"Level",scan.visceral_fat_level)
     bar(rx+7,ry+2,165,scan.visceral_fat_level,0,20)
-    text(rx+7,ry-11,"0",6.7,color=GRAY)
-    text(rx+RIGHT_W-15,ry-11,"20",6.7,color=GRAY)
+    text(rx+7,ry-10,"0",6.7,color=GRAY)
+    text(rx+RIGHT_W-15,ry-10,"20",6.7,color=GRAY)
     ry-=26
     ry=section(rx,ry,RIGHT_W,"Research Parameters")
     research=[
@@ -326,9 +326,10 @@ def build_inbody_pdf(scan, history=None):
             c.setFont("Helvetica-Bold",15)
             c.setFillColor(RED)
             c.drawRightString(rx+RIGHT_W-8,ry-34,f"{lifetime_delta:+.1f} lb")
-            ry-=49
+            ry-=54
         else:
             change_row("Total weight",original.weight_lb,last.weight_lb," lb")
+        ry-=3
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
