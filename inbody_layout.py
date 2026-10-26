@@ -314,6 +314,14 @@ def build_inbody_pdf(scan, history=None):
         if row_index%2==0:
             c.setFillColor(colors.HexColor("#f4f6f7"))
             c.rect(MARGIN,bottom,chart_width,band_h,stroke=0,fill=1)
+        # Subtle date-aligned guides behind the plotted values.
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#d6dce0"))
+        c.setLineWidth(0.35)
+        c.setDash(1.3,2.8)
+        for px in positions:
+            c.line(px,bottom+2,px,top-2)
+        c.restoreState()
         text(MARGIN+3,bottom+band_h*.45,label,7.8,True)
         values=[fn(h) for h in history]
         numeric=[v for v in values if v is not None]
