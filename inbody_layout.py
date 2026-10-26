@@ -36,7 +36,7 @@ def build_inbody_pdf(scan, history=None):
     history=full_history[-6:]
     # The six most recent scans drive the charts and recent-period deltas;
     # the complete record remains available for lifetime comparisons.
-    is_synthetic=any("synthetic" in str(getattr(h,"notes","")).lower() or "synthetic" in str(getattr(h,"device_model","")).lower() for h in history)
+    is_synthetic=("synthetic" in str(getattr(scan,"notes","")).lower() or "synthetic" in str(getattr(scan,"device_model","")).lower())
     config=report_config()
     out=io.BytesIO()
     c=canvas.Canvas(out,pagesize=A4,pageCompression=0)
@@ -108,7 +108,7 @@ def build_inbody_pdf(scan, history=None):
     text(386,H-65,"Test date",7,color=GRAY)
     text(386,H-77,str(scan.scan_date),9)
     status=("SYNTHETIC DEMONSTRATION - NOT REAL MEASUREMENTS" if is_synthetic else "GENERATED / NOT DEVICE-VERIFIED - Entered or calculated values")
-    if is_synthetic or config["show_generated_header_notice"]:
+    if config["show_generated_header_notice"]:
         text(MARGIN,H-92,status,7,True,RED)
     # Left: stacked analytical sections
     x=MARGIN;y=H-115
@@ -251,12 +251,12 @@ def build_inbody_pdf(scan, history=None):
         "and fat-free mass.",
         "BMI is derived from weight and height.",
     ]
-    if is_synthetic or config.get("show_segmental_disclaimer",True):
+    if config.get("show_segmental_disclaimer",True):
         interpretation.extend([
             "Segmental values are illustrative" if is_synthetic else "Segmental values are shown only",
             "and not device-measured." if is_synthetic else "when supplied by the user.",
         ])
-    if is_synthetic or config.get("show_device_values_disclaimer",True):
+    if config.get("show_device_values_disclaimer",True):
         interpretation.append("Device-only fields may be unavailable." if is_synthetic else "No device-only values are inferred.")
     for msg in interpretation:
         text(rx+2,ry,msg,7,color=GRAY)
@@ -292,12 +292,10 @@ def build_inbody_pdf(scan, history=None):
         change_row("Recent weight",first.weight_lb,last.weight_lb," lb")
         change_row("Recent body fat",first.body_fat_pct,last.body_fat_pct," pp")
         change_row("Recent muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
-        if is_synthetic:
-            text(rx+2,ry-1,"Fictional demo trends; not measured.",6.5,color=RED)
-    line(MARGIN,43,W-MARGIN,43,RED,1)
-    if is_synthetic or config["show_generated_footer_notice"]:
+    # Disclosure of invented measurements is mandatory even when optional\n    # report notices are disabled. It is not a configurable decoration.\n    if is_synthetic:\n        text(MARGIN,54,"Synthetic demo fields present; not device-measured.",6.8,True,RED)\n    line(MARGIN,43,W-MARGIN,43,RED,1)
+    if config["show_generated_footer_notice"]:
         text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
-    if is_synthetic or config.get("show_tracking_footer",True):
+    if config.get("show_tracking_footer",True):
         text(MARGIN,19,("Fictional software demonstration - not for medical use." if is_synthetic else "For personal tracking; not a diagnostic or device-verified measurement."),6.8,color=GRAY)
     c.save()
     return out.getvalue()
