@@ -106,4 +106,8 @@ form.addEventListener('change',async()=>{
  document.querySelector('#quality').textContent=result.warnings.length?'Review: '+result.warnings.join(' '):'No consistency warnings found.';
  }catch(_){/* Offline validation unavailable */}
 });
+// Give history and graphs the full page width rather than confining them to the preview column.
+const historyWorkspace=document.querySelector('#trends');
+historyWorkspace.classList.add('workspace-history');
+document.querySelector('main').appendChild(historyWorkspace);
 setupWizard();
