@@ -2,9 +2,9 @@
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import A4
 
-W,H=letter
+W,H=A4
 RED=colors.HexColor("#873e46")
 INK=colors.HexColor("#242729")
 GRAY=colors.HexColor("#718087")
@@ -43,14 +43,14 @@ def build_inbody_pdf(scan, history=None):
         text(x+width-76,y,value(v),8.2,True)
         text(x+width-31,y,unit,7,color=GRAY)
         line(x,y-5,x+width,y-5)
-        return y-18
+        return y-14
     def metric(x,y,label,v,unit,lo,hi):
         text(x+3,y,label,7.6,True)
         bar(x+107,y+1,155,v,lo,hi)
         text(x+275,y,value(v),8.6,True)
         text(x+317,y,unit,7,color=GRAY)
         line(x,y-7,x+LEFT,y-7)
-        return y-24
+        return y-21
     def small_row(x,y,label,v):
         text(x+2,y,label,7.5)
         text(x+125,y,value(v),8,True)
@@ -66,7 +66,7 @@ def build_inbody_pdf(scan, history=None):
             bar(x+151,y+1,122,pct,50,150)
             text(x+285,y,value(pct)+"%",7.5)
             line(x,y-7,x+LEFT,y-7)
-            y-=23
+            y-=19
         return y-6
     # Header and identity
     text(MARGIN,H-39,"InBody",27,True,RED)
@@ -142,7 +142,7 @@ def build_inbody_pdf(scan, history=None):
         for px,py in pts:
             c.setFillColor(RED);c.circle(px,py,1.8,stroke=0,fill=1)
         line(x,y-19,x+LEFT,y-19)
-        y-=32
+        y-=26
     # Right side
     rx=RIGHT_X;ry=H-115
     ry=section(rx,ry,RIGHT_W,"Body Fat / Lean Control")
