@@ -20,7 +20,7 @@ RIGHT_W=185
 
 def report_config():
     path=Path(__file__).parent/"data"/"report_config.json"
-    defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True}
+    defaults={"show_generated_header_notice":True,"show_generated_footer_notice":True,"show_tracking_footer":True,"show_segmental_disclaimer":True,"show_device_values_disclaimer":True}
     if not path.exists():
         return defaults
     config=json.loads(path.read_text(encoding="utf-8"))
@@ -221,15 +221,21 @@ def build_inbody_pdf(scan, history=None):
         ry=small_row(rx,ry,label,v)
     ry-=8
     ry=section(rx,ry,RIGHT_W,"Results Interpretation")
-    for msg in [
+    interpretation=[
         "Body composition includes fat mass",
         "and fat-free mass.",
         "BMI is derived from weight and height.",
-        ("Segmental values are illustrative" if is_synthetic else "Segmental values are shown only"),
-        ("and not device-measured." if is_synthetic else "when supplied by the user."),
-        ("Device-only fields may be unavailable." if is_synthetic else "No device-only values are inferred."),
-    ]:
-        text(rx+2,ry,msg,7,color=GRAY);ry-=12
+    ]
+    if is_synthetic or config["show_segmental_disclaimer"]:
+        interpretation.extend([
+            "Segmental values are illustrative" if is_synthetic else "Segmental values are shown only",
+            "and not device-measured." if is_synthetic else "when supplied by the user.",
+        ])
+    if is_synthetic or config["show_device_values_disclaimer"]:
+        interpretation.append("Device-only fields may be unavailable." if is_synthetic else "No device-only values are inferred.")
+    for msg in interpretation:
+        text(rx+2,ry,msg,7,color=GRAY)
+        ry-=12
     ry-=8
     ry=section(rx,ry,RIGHT_W,"Impedance (ohms)")
     keys=[("RA","right_arm"),("LA","left_arm"),("TR","trunk"),("RL","right_leg"),("LL","left_leg")]
@@ -265,6 +271,7 @@ def build_inbody_pdf(scan, history=None):
     line(MARGIN,43,W-MARGIN,43,RED,1)
     if is_synthetic or config["show_generated_footer_notice"]:
         text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
-    text(MARGIN,19,("Fictional software demonstration - not for medical use." if is_synthetic else "For personal tracking; not a diagnostic or device-verified measurement."),6.8,color=GRAY)
+    if is_synthetic or config["show_tracking_footer"]:
+        text(MARGIN,19,("Fictional software demonstration - not for medical use." if is_synthetic else "For personal tracking; not a diagnostic or device-verified measurement."),6.8,color=GRAY)
     c.save()
     return out.getvalue()
