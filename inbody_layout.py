@@ -139,34 +139,49 @@ def build_inbody_pdf(scan, history=None):
     y=metric(x,y,"ECW / TBW",scan.ecw_tbw_ratio,"",.32,.45,3)
     y-=5
     y=section(x,y,LEFT,"Body Composition History")
-    # Six dated columns, newest on the right
-    hx=x+112;cw=39
+    # A shared date header and four self-contained chart bands.
+    # All labels, values and plots for a metric stay within its own band.
+    hx=x+112
+    cw=39
     for i,h in enumerate(history):
-        text(hx+i*cw,y,str(h.scan_date)[5:],6.1,color=GRAY)
-    y-=19
-    for label,fn in [
-        ("Weight (lb)",lambda z:z.weight_lb),
-        ("SMM (lb)",lambda z:z.skeletal_muscle_lb),
-        ("PBF (%)",lambda z:z.body_fat_pct),
-        ("ECW/TBW",lambda z:z.ecw_tbw_ratio)]:
-        text(x+2,y,label,8,True)
+        text(hx+11+i*cw,y,str(h.scan_date)[5:],6.1,color=GRAY)
+    y-=12
+    chart_rows=[
+        ("Weight (lb)",lambda z:z.weight_lb,1),
+        ("SMM (lb)",lambda z:z.skeletal_muscle_lb,1),
+        ("PBF (%)",lambda z:z.body_fat_pct,1),
+        ("ECW/TBW",lambda z:z.ecw_tbw_ratio,3),
+    ]
+    band_h=36
+    for row_index,(label,fn,decimals) in enumerate(chart_rows):
+        top=y
+        bottom=top-band_h
+        if row_index%2==0:
+            c.setFillColor(colors.HexColor("#f4f6f7"))
+            c.rect(x,bottom,LEFT,band_h,stroke=0,fill=1)
+        # Label is centered vertically against its *own* plot, never the next row.
+        text(x+3,top-21,label,7.8,True)
         values=[fn(h) for h in history]
-        pts=[]
         numeric=[v for v in values if v is not None]
         low=min(numeric) if numeric else 0
         high=max(numeric) if numeric else 1
         span=max(high-low,.001)
+        # Value labels occupy the top of the band; plotted points occupy
+        # the lower half, with 4 pt minimum clearance to the next band.
+        points=[]
         for i,v in enumerate(values):
             px=hx+11+i*cw
             if v is not None:
-                py=y-17+15*(v-low)/span
-                pts.append((px,py))
-                text(px-10,y+8,value(v,3 if label=="ECW/TBW" else 1),6.5)
-        for a,b in zip(pts,pts[1:]):line(*a,*b,RED,1)
-        for px,py in pts:
-            c.setFillColor(RED);c.circle(px,py,1.8,stroke=0,fill=1)
-        line(x,y-27,x+LEFT,y-27)
-        y-=34
+                text(px-10,top-10,value(v,decimals),6.3)
+                py=bottom+6+11*(v-low)/span
+                points.append((px,py))
+        for p,q in zip(points,points[1:]):
+            line(*p,*q,RED,1)
+        for px,py in points:
+            c.setFillColor(RED)
+            c.circle(px,py,1.7,stroke=0,fill=1)
+        line(x,bottom,x+LEFT,bottom,PALE,.7)
+        y=bottom
     # Right side
     rx=RIGHT_X;ry=H-115
     ry=section(rx,ry,RIGHT_W,"Body Fat / Lean Control")
