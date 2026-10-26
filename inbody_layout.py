@@ -18,6 +18,7 @@ RIGHT_W=185
 def build_inbody_pdf(scan, history=None):
     """Draw the same printable sheet used by the browser preview."""
     history=sorted(history or [scan],key=lambda x:x.scan_date)[-6:]
+    is_synthetic=any("synthetic" in str(getattr(h,"notes","")).lower() or "synthetic" in str(getattr(h,"device_model","")).lower() for h in history)
     out=io.BytesIO()
     c=canvas.Canvas(out,pagesize=A4,pageCompression=0)
     c.setTitle("Generated InBody-style body composition report")
@@ -64,7 +65,7 @@ def build_inbody_pdf(scan, history=None):
             text(x+3,y,label,7.6,True)
             text(x+84,y,value(amount,2)+" lb" if amount is not None else "—",7.7)
             bar(x+151,y+1,122,pct,50,150)
-            text(x+285,y,value(pct)+"%",7.5)
+            text(x+285,y,(value(pct)+"%" if pct is not None else "N/A"),7.5,color=GRAY if pct is None else INK)
             line(x,y-7,x+LEFT,y-7)
             y-=19
         return y-6
@@ -82,7 +83,8 @@ def build_inbody_pdf(scan, history=None):
     text(304,H-77,str(scan.sex).title(),9)
     text(386,H-65,"Test date",7,color=GRAY)
     text(386,H-77,str(scan.scan_date),9)
-    text(MARGIN,H-92,"GENERATED / NOT DEVICE-VERIFIED  •  Values are user-provided or explicitly calculated.",7,True,RED)
+    status=("SYNTHETIC DEMONSTRATION - NOT REAL MEASUREMENTS" if is_synthetic else "GENERATED / NOT DEVICE-VERIFIED - Entered or calculated values")
+    text(MARGIN,H-92,status,7,True,RED)
     # Left: stacked analytical sections
     x=MARGIN;y=H-115
     y=section(x,y,LEFT,"Body Composition Analysis")
@@ -187,8 +189,28 @@ def build_inbody_pdf(scan, history=None):
             v=getattr(scan,f"impedance_{freq}khz_{key}_ohm",None)
             text(rx+42+i*28,ry,value(v,0),6.3)
         ry-=15
+    # History change is distinct from target-control values.
+    if len(history)>1:
+        first,last=history[0],history[-1]
+        ry-=18
+        ry=section(rx,ry,RIGHT_W,"Transformation Overview")
+        text(rx+2,ry,"From "+str(first.scan_date)+" to "+str(last.scan_date),6.7,color=GRAY)
+        ry-=18
+        def change_row(label,begin,end,unit="",digits=1):
+            nonlocal ry
+            display="N/A" if begin is None or end is None else f"{end-begin:+.{digits}f}{unit}"
+            text(rx+2,ry,label,7.1)
+            text(rx+119,ry,display,8,True)
+            line(rx,ry-5,rx+RIGHT_W,ry-5)
+            ry-=18
+        change_row("Weight",first.weight_lb,last.weight_lb," lb")
+        change_row("Body fat",first.body_fat_pct,last.body_fat_pct," pp")
+        change_row("Skeletal muscle",first.skeletal_muscle_lb,last.skeletal_muscle_lb," lb")
+        change_row("Visceral level",first.visceral_fat_level,last.visceral_fat_level,"")
+        if is_synthetic:
+            text(rx+2,ry-1,"All trends are fictional demo data.",6.5,color=RED)
     line(MARGIN,43,W-MARGIN,43,RED,1)
-    text(MARGIN,30,"GENERATED REPORT — NOT AN ORIGINAL INBODY RESULT SHEET",7,True,RED)
+    text(MARGIN,30,("SYNTHETIC DEMO - NOT REAL SCAN RESULTS" if is_synthetic else "GENERATED REPORT - NOT AN ORIGINAL INBODY RESULT SHEET"),7,True,RED)
     text(MARGIN,19,"For personal tracking; not a diagnostic or device-verified measurement.",6.8,color=GRAY)
     c.save()
     return out.getvalue()
